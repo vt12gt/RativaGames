@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: rativasnack-lag-test
+    runtime: node
+    plan: free
+    region: virginia
+    branch: test/rativasnack-lagtest-render
+    rootDir: RativaSnack/server-lag-test
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
