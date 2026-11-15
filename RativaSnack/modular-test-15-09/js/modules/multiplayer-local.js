@@ -41,8 +41,8 @@ function mpBind(b,c){b.remote=c;b.localPaused=!!c.paused;b.name=c.nick||'Jogador
 function mpRebind(i){const c=mpSlots[i];if(c&&c.open&&bots[i])mpBind(bots[i],c)}
 function mpSer(s,step){const sg=s.segments,g=[];for(let i=0;i<sg.length;i+=i<4?1:step)g.push(Math.round(sg[i].x),Math.round(sg[i].y));return{x:Math.round(s.x),y:Math.round(s.y),a:+s.angle.toFixed(2),pz:!!s.localPaused,r:s.radius,c:s.color,n:s.name,l:s.length,al:s.alive?1:0,sh:+(s.shield||0).toFixed(1),ba:s.boostActive?1:0,sk:s.skin,ac:s.acc,ta:s.tail,sp:s.special||0,st:s.stun>0?1:0,rt:s.rat||'nenhum',g}}
 function mpHostTick(dt){mpAcc+=dt;if(mpAcc<.05)return;mpAcc=0;
- for(let i=0;i<mpSlots.length;i++){const c=mpSlots[i],me=bots[i];if(!c||!c.open||c.dc.readyState!=='open'||!me||c.dc.bufferedAmount>262144)continue;me.localPaused=!!c.paused;
-  const o=[],f=[];for(const s of snakes){if(s===me||!s.alive)continue;const dx=s.x-me.x,dy=s.y-me.y;if(mpOnline||dx*dx+dy*dy<1690000)o.push(mpSer(s,Math.ceil(s.length/70)))}
+ for(let i=0;i<mpSlots.length;i++){const c=mpSlots[i],me=bots[i];if(!c||!c.open||c.dc.readyState!=='open'||!me||c.dc.bufferedAmount>131072)continue;me.localPaused=!!c.paused;
+  const o=[],f=[];for(const s of snakes){if(s===me||!s.alive)continue;const dx=s.x-me.x,dy=s.y-me.y;if(dx*dx+dy*dy<1690000)o.push(mpSer(s,Math.ceil(s.length/70)))}
   for(const q of foods){if(q.dead||f.length>=150)continue;const dx=q.x-me.x,dy=q.y-me.y;if(dx*dx+dy*dy<810000)f.push([Math.round(q.x),Math.round(q.y),q.type,Math.round(q.r),q.color])}
   c.dc.send(JSON.stringify({st:1,ar:ARENAS.indexOf(ARENA),t:+gameTime.toFixed(1),me:mpSer(me,Math.ceil(me.length/70)),o,f}))}}
 const mpC=v=>/^#[0-9a-f]{6}$/i.test(v)?v:'#ffffff',mpN=v=>Number.isFinite(+v)?+v:0,mpS=(v,d)=>String(v||d).slice(0,16);
