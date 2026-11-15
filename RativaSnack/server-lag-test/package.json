@@ -1,0 +1,16 @@
+{
+  "name": "rato-snack-realtime-server-lagtest",
+  "version": "1.2.0",
+  "private": true,
+  "description": "Cópia isolada do relay WebSocket RativaSnack com proteção contra fila de snapshots e heartbeat",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}
