@@ -1795,8 +1795,32 @@ function onAct(act){setTimeout(applyControlPrefs,0);const i=act.indexOf(':'),k=a
  else if(k==='tog'&&(v==='sfx'||v==='music'||v==='fullscreen'||v==='boostLeft'||v==='vib'||v==='stickLeft'||v==='arrows'||v==='bigtxt'||v==='cblind'||v==='autoq')){prefs[v]=!prefs[v];if(v==='bigtxt'||v==='cblind')applyA11y();bb.classList.toggle('left',prefs.boostLeft);if(v==='sfx'||v==='music'){ensureAudio();applyVolumes();if(v==='sfx'&&prefs.sfx)sfx('bonus')}}
  savePrefs();renderSheet(sheetName)}
 
+/* ============ Cenário procedural RativaSnack ============ */
+function envHash(x,y){let n=(Math.imul(x|0,374761393)+Math.imul(y|0,668265263))|0;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295}
+function drawEnvironment(t){
+ const size=180,ox=Math.floor(cam.x/size)*size,oy=Math.floor(cam.y/size)*size;
+ ctx.save();ctx.beginPath();ctx.rect(-cam.x,-cam.y,worldW,worldH);ctx.clip();
+ ctx.fillStyle='#285b43';ctx.fillRect(-cam.x,-cam.y,worldW,worldH);
+ for(let wy=oy;wy<cam.y+H+size;wy+=size)for(let wx=ox;wx<cam.x+W+size;wx+=size){
+  const x=wx-cam.x,y=wy-cam.y,h=envHash(wx/size,wy/size);
+  ctx.fillStyle=h>.52?'#2d6548':'#285b43';ctx.fillRect(x,y,size+1,size+1);
+  // manchas suaves no gramado
+  for(let k=0;k<3;k++){const a=envHash(wx/size+k*13,wy/size+k*7),b=envHash(wx/size+k*5+2,wy/size+k*17+4);ctx.fillStyle=k%2?'#3b754d55':'#173f3455';ctx.beginPath();ctx.ellipse(x+20+a*140,y+18+b*140,15+a*24,9+b*17,a*3.14,0,6.2832);ctx.fill()}
+  // tufos de grama
+  for(let k=0;k<5;k++){const a=envHash(wx/size+k*19+1,wy/size+k*11+3),b=envHash(wx/size+k*7+9,wy/size+k*23+5),gx=x+12+a*155,gy=y+12+b*155;ctx.strokeStyle='#a4c96a88';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(gx,gy+5);ctx.lineTo(gx-3,gy-3);ctx.moveTo(gx,gy+5);ctx.lineTo(gx+3,gy-5);ctx.stroke()}
+  // pedras pequenas
+  if(h>.73){const rx=x+35+envHash(wx/size+4,wy/size+8)*105,ry=y+35+envHash(wx/size+9,wy/size+2)*105;ctx.fillStyle='#596b6577';ctx.beginPath();ctx.ellipse(rx,ry,8,5,.3,0,6.2832);ctx.fill();ctx.strokeStyle='#a9b6a077';ctx.lineWidth=1;ctx.stroke()}
+  // arbustos decorativos nas bordas dos setores
+  if(h>.89){const bx=x+25+envHash(wx/size+21,wy/size+12)*125,by=y+25+envHash(wx/size+3,wy/size+27)*125;ctx.fillStyle='#17472f';ctx.beginPath();ctx.arc(bx+3,by+5,16,0,6.2832);ctx.arc(bx-9,by,12,0,6.2832);ctx.arc(bx+12,by-3,13,0,6.2832);ctx.fill();ctx.fillStyle='#4d9654';ctx.beginPath();ctx.arc(bx-7,by-5,7,0,6.2832);ctx.arc(bx+8,by-8,7,0,6.2832);ctx.fill()}
+  // flores coloridas
+  if(h<.16){const fx=x+40+envHash(wx/size+31,wy/size+2)*100,fy=y+40+envHash(wx/size+2,wy/size+31)*100;ctx.fillStyle='#e9d77a';ctx.beginPath();ctx.arc(fx,fy,2.5,0,6.2832);ctx.fill();ctx.fillStyle='#f3a6c7';for(let j=0;j<5;j++){const a=j*1.2566;ctx.beginPath();ctx.arc(fx+Math.cos(a)*4,fy+Math.sin(a)*4,2.5,0,6.2832);ctx.fill()}}
+ }
+ // trilhas sinuosas discretas, ancoradas no mundo
+ ctx.strokeStyle='#b6a16b33';ctx.lineWidth=34;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-cam.x-80,-cam.y+worldH*.72);ctx.bezierCurveTo(worldW*.22-cam.x,worldH*.58-cam.y,worldW*.34-cam.x,worldH*.82-cam.y,worldW*.52-cam.x,worldH*.67-cam.y);ctx.bezierCurveTo(worldW*.7-cam.x,worldH*.5-cam.y,worldW*.82-cam.x,worldH*.65-cam.y,worldW+80-cam.x,worldH*.42-cam.y);ctx.stroke();
+ ctx.restore();
+}
 /* ============ Desenho ============ */
-function background(){const sw=CFG.solidWalls,wx=-cam.x,wy=-cam.y;ctx.fillStyle=sw?'#0d0a1c':'#150f2a';ctx.fillRect(0,0,W,H);
+function background(){const sw=CFG.solidWalls,wx=-cam.x,wy=-cam.y;ctx.fillStyle='#173b32';ctx.fillRect(0,0,W,H);drawEnvironment(gameTime);
  if(sw){ctx.fillStyle='#150f2a';ctx.fillRect(wx,wy,worldW,worldH);ctx.save();ctx.beginPath();ctx.rect(wx,wy,worldW,worldH);ctx.clip()}
  const g=70,ox=-((cam.x%g)+g)%g,oy=-((cam.y%g)+g)%g;ctx.strokeStyle='#26334b';ctx.lineWidth=1;ctx.beginPath();for(let x=ox;x<W;x+=g){ctx.moveTo(x,0);ctx.lineTo(x,H)}for(let y=oy;y<H;y+=g){ctx.moveTo(0,y);ctx.lineTo(W,y)}ctx.stroke();
  if(sw){ctx.restore();drawArena(wx,wy);ctx.strokeStyle='#ff6b8bcc';ctx.lineWidth=6;ctx.strokeRect(wx,wy,worldW,worldH)}
