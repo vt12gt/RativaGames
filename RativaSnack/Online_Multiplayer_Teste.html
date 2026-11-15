@@ -927,7 +927,7 @@ const ARENAS=[{n:'Aberta',o:[]},
  {n:'Pilares',o:[[.2,.22,.045,.07,0],[.735,.22,.045,.07,0],[.2,.71,.045,.07,0],[.735,.71,.045,.07,0],[.47,.1,.06,.05,0],[.47,.85,.06,.05,0]]},
  {n:'Corredores',o:[[.12,.33,.3,.035,0],[.58,.33,.3,.035,0],[.12,.635,.3,.035,0],[.58,.635,.3,.035,0]]},
  {n:'Zona de perigo',o:[[.08,.1,.14,.2,1],[.78,.7,.14,.2,1],[.78,.1,.14,.2,1],[.08,.7,.14,.2,1],[.3,.47,.05,.07,0],[.65,.47,.05,.07,0]]}];
-function setArena(){ARENA=mode==='daily'?ARENAS[1+((Math.random()*(ARENAS.length-1))|0)]:(mode==='quick'||mode==='survival'||mode==='infinite'||mode==='team')?ARENAS[(Math.random()*ARENAS.length)|0]:ARENAS[0];OBS=ARENA.o.map(a=>({x:a[0]*worldW,y:a[1]*worldH,w:a[2]*worldW,h:a[3]*worldH,k:a[4]}))}
+function setArena(){ARENA=mpOnline?ARENAS[1]:mode==='daily'?ARENAS[1+((Math.random()*(ARENAS.length-1))|0)]:(mode==='quick'||mode==='survival'||mode==='infinite'||mode==='team')?ARENAS[(Math.random()*ARENAS.length)|0]:ARENAS[0];OBS=ARENA.o.map(a=>({x:a[0]*worldW,y:a[1]*worldH,w:a[2]*worldW,h:a[3]*worldH,k:a[4]}))}
 function setB(k){B.k=k;B.x0=k*worldW*.2;B.x1=worldW-B.x0;B.y0=k*worldH*.2;B.y1=worldH-B.y0}
 function obsHit(s){if(s===player&&secrets.length&&secrets.some(q=>!q.got&&Math.hypot(q.x-s.x,q.y-s.y)<170))return false;const r=s.radius*.85;for(const o of OBS){const dx=Math.max(o.x-s.x,0,s.x-o.x-o.w),dy=Math.max(o.y-s.y,0,s.y-o.y-o.h);if(dx*dx+dy*dy<r*r&&(!o.k||s.shield<=0))return true}return false}
 function obsRisk(x,y){let r=0;for(const o of OBS){const dx=Math.max(o.x-x,0,x-o.x-o.w),dy=Math.max(o.y-y,0,y-o.y-o.h),d=Math.sqrt(dx*dx+dy*dy);if(d<70)r+=(70-d)*4}return r}
