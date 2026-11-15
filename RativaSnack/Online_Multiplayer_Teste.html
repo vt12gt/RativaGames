@@ -1821,7 +1821,7 @@ function drawEnvironment(t){
 }
 /* ============ Desenho ============ */
 function background(){const sw=CFG.solidWalls,wx=-cam.x,wy=-cam.y;ctx.fillStyle='#173b32';ctx.fillRect(0,0,W,H);drawEnvironment(gameTime);
- if(sw){ctx.fillStyle='#150f2a';ctx.fillRect(wx,wy,worldW,worldH);ctx.save();ctx.beginPath();ctx.rect(wx,wy,worldW,worldH);ctx.clip()}
+ if(sw){ctx.save();ctx.beginPath();ctx.rect(wx,wy,worldW,worldH);ctx.clip()}
  const g=70,ox=-((cam.x%g)+g)%g,oy=-((cam.y%g)+g)%g;ctx.strokeStyle='#26334b';ctx.lineWidth=1;ctx.beginPath();for(let x=ox;x<W;x+=g){ctx.moveTo(x,0);ctx.lineTo(x,H)}for(let y=oy;y<H;y+=g){ctx.moveTo(0,y);ctx.lineTo(W,y)}ctx.stroke();
  if(sw){ctx.restore();drawArena(wx,wy);ctx.strokeStyle='#ff6b8bcc';ctx.lineWidth=6;ctx.strokeRect(wx,wy,worldW,worldH)}
  ctx.fillStyle=vig;ctx.fillRect(0,0,W,H)}
