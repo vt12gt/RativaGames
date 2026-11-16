@@ -394,11 +394,14 @@ wss.on('connection', (ws, req, user) => {
       if (now - (ws._lastAvatarAt || 0) < 45) return;
       ws._lastAvatarAt = now;
       if (!m.a || typeof m.a !== 'object') return;
-      // Não retransmite snapshots antigos quando o socket do destinatário está congestionado.
-      if (ws.bufferedAmount > 98304) return;
       const a = m.a;
       if (![a.x, a.y, a.d].every(v => Number.isFinite(Number(v)))) return;
-      broadcast(room, { t: 'avatar', id: user.id, a }, user.id);
+      // Não enfileira posições antigas para clientes cujo WebSocket já está congestionado.
+      const snapshot = { t: 'avatar', id: user.id, a };
+      for (const target of room.players.values()) {
+        if (target.id === user.id || !target.ws || target.ws.bufferedAmount > 98304) continue;
+        send(target.ws, snapshot);
+      }
       return;
     }
     if (m.t === 'player_death') {
