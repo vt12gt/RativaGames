@@ -28,6 +28,7 @@
    const [d,l]=await Promise.all([request('/api/on-air'),request('/api/live/status')]);
    const state=d.state||{active:false},live=l.live||{active:false};
    if(live.active){
+    play.disabled=false;
     label.textContent=(live.title||'Locução ao vivo')+' · AO VIVO';
     if(userWantsPlayback){await subscribeLive();await liveNode().play().catch(()=>{})}
     return;
@@ -59,6 +60,7 @@
    const l=await request('/api/live/status');
    if(l.live?.active){await subscribeLive();await liveNode().play();play.textContent='Ⅱ';return}
    await syncState(true);
+   if(currentState?.paused){userWantsPlayback=false;play.textContent='▶';showToast('A programação está pausada pela equipe.');return}
    if(audio.src)await audio.play();
    play.textContent='Ⅱ';
   }catch(e){userWantsPlayback=false;play.textContent='▶';label.textContent='Não foi possível iniciar o áudio · tente novamente';console.warn(e.message)}
