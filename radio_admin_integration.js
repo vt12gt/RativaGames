@@ -45,12 +45,14 @@ function renderSharedRadioLists(){
 async function loadRadioConfig(){
  $('sharedPlaylistStatus').textContent='Sincronizando com o servidor…';
  try{
-  const result=await Promise.all([radioApi('/api/tracks'),radioApi('/api/playlist'),radioApi('/api/ads'),radioApi('/api/programs')]);
+  const result=await Promise.all([radioApi('/api/tracks'),radioApi('/api/playlist'),radioApi('/api/ads'),radioApi('/api/programs'),radioApi('/api/live/status')]);
   cloudTracks=result[0].tracks||[];
   await ensureTrackDurations();
   radioPlaylistTracks=(result[1].playlist?.tracks||[]).map(t=>({...t,durationMs:Number(t.durationMs)||Number(cloudTracks.find(x=>x.key===t.key)?.durationMs)||0}));
   radioAdTracks=result[2].ads?.tracks||[];
   radioPrograms=result[3].programs||[];
+  const liveState=result[4].live||{active:false};
+  $('liveDot').className=liveState.active?'dot green':'dot';$('liveState').textContent=liveState.active?'Transmissão ativa':'Fora do ar';$('liveTitle').textContent=liveState.active?'RÁDIO AO VIVO':'A RÁDIO ESTÁ OFFLINE';$('liveDescription').textContent=liveState.active?'Existe uma locução ativa no servidor. Você pode encerrar a transmissão pelo painel.':'Nenhuma locução ativa no momento.';$('goLive').disabled=liveState.active;$('endLive').disabled=!liveState.active;
   $('cloudCount').textContent=cloudTracks.length+' arquivos';
   $('adsEnabled').checked=result[2].ads?.enabled===true;
   $('adInterval').value=result[2].ads?.intervalMinutes||30;
@@ -153,7 +155,7 @@ async function stopLive(){
  if(publisherPc){publisherPc.close();publisherPc=null}
  if(publisherStream){publisherStream.getTracks().forEach(t=>t.stop());publisherStream=null}
  publisherSession=null;publisherLease=null;
- try{if(lease)await radioApi('/api/live/stop','POST',{leaseId:lease})}catch(e){toast('Microfone encerrado localmente; servidor verificará a queda em até 75 segundos.')}
+ try{await radioApi('/api/live/stop','POST',lease?{leaseId:lease}:{})}catch(e){toast('Microfone encerrado localmente; servidor verificará a queda em até 75 segundos.')}
  $('liveDot').className='dot';$('liveState').textContent='Fora do ar';$('liveTitle').textContent='A RÁDIO ESTÁ OFFLINE';
  $('liveDescription').textContent='Transmissão encerrada.';$('endLive').disabled=true;$('goLive').disabled=false;
 }
