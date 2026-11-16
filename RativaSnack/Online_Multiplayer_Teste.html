@@ -1308,7 +1308,7 @@ function olRelayAvatarTick(dt){
  const step=Math.max(1,Math.ceil(seg.length/90));
  for(let i=0;i<seg.length;i+=step)g.push(Math.round(seg[i].x),Math.round(seg[i].y));
  if(seg.length&&((seg.length-1)%step!==0)){const q=seg[seg.length-1];g.push(Math.round(q.x),Math.round(q.y))}
- olSend({t:'avatar',a:{x:Math.round(player.x),y:Math.round(player.y),d:+(player.angle||0).toFixed(3),l:Math.max(1,Math.floor(player.length||seg.length)),al:player.alive?1:0,r:player.radius,c:player.color,n:ol.nick||prefs.nick||'Jogador',sk:player.skin||prefs.skin||'liso',ac:player.acc||'nenhum',ta:player.tail||'normal',rt:player.rat||prefs.rat||'nenhum',ht:player.hat||'nenhum',cl:player.cloth||'nenhum',g}});
+ olSend({t:'avatar',a:{x:Math.round(player.x),y:Math.round(player.y),d:+(player.angle||0).toFixed(3),l:Math.max(1,Math.floor(player.length||seg.length)),al:player.alive?1:0,r:player.radius,c:player.color,n:ol.nick||prefs.nick||'Jogador',sc:Math.max(0,Number(score)||0),ki:Math.max(0,Number(kills)||0),sk:player.skin||prefs.skin||'liso',ac:player.acc||'nenhum',ta:player.tail||'normal',rt:player.rat||prefs.rat||'nenhum',ht:player.hat||'nenhum',cl:player.cloth||'nenhum',g}});
 }
 function olApplyRemoteAvatar(m){
  const id=String(m.id||'');if(!id||id===String(ol.id)||!m.a)return;
@@ -1318,9 +1318,10 @@ function olApplyRemoteAvatar(m){
  const g=Array.isArray(a.g)?a.g.slice(0,240).map(Number):[];
  const segments=[];for(let i=0;i+1<g.length;i+=2)if(Number.isFinite(g[i])&&Number.isFinite(g[i+1]))segments.push({x:g[i],y:g[i+1]});
  if(!segments.length)segments.push({x,y});
- Object.assign(old,{x,y,tx:x,ty:y,angle:d,ta:d,px:old.x===undefined?x:old.x,py:old.y===undefined?y:old.y,length:Math.max(1,Math.min(10000,Number(a.l)||segments.length)),alive:!!a.al,radius:Math.max(4,Math.min(40,Number(a.r)||10)),color:mpC(a.c),name:String(a.n||'Jogador').slice(0,24),skin:mpS(a.sk,'liso'),acc:mpS(a.ac,'nenhum'),tail:mpS(a.ta,'normal'),rat:mpS(a.rt,'nenhum'),hat:mpS(a.ht,'nenhum'),cloth:mpS(a.cl,'nenhum'),segments:old.segments&&old.segments.length?old.segments:segments.map(q=>({x:q.x,y:q.y})),targetSegments:segments,remoteRender:true,isBot:false,shield:0,special:0,boostT:0,boostActive:false});
+ Object.assign(old,{x,y,tx:x,ty:y,angle:d,ta:d,px:old.x===undefined?x:old.x,py:old.y===undefined?y:old.y,score:Math.max(0,Number(a.sc)||0),kills:Math.max(0,Number(a.ki)||0),length:Math.max(1,Math.min(10000,Number(a.l)||segments.length)),alive:!!a.al,radius:Math.max(4,Math.min(40,Number(a.r)||10)),color:mpC(a.c),name:String(a.n||'Jogador').slice(0,24),skin:mpS(a.sk,'liso'),acc:mpS(a.ac,'nenhum'),tail:mpS(a.ta,'normal'),rat:mpS(a.rt,'nenhum'),hat:mpS(a.ht,'nenhum'),cloth:mpS(a.cl,'nenhum'),segments:old.segments&&old.segments.length?old.segments:segments.map(q=>({x:q.x,y:q.y})),targetSegments:segments,remoteRender:true,isBot:false,remote:{uid:id},shield:0,special:0,boostT:0,boostActive:false});
  old.tx=x;old.ty=y;old.ta=d;olRemoteAvatars.set(id,old);
 }
+function olRemoteCollisionTick(){if(!mpOnline||mpRole!=='relay'||!player||!player.alive)return;const px=player.x,py=player.y,pr=player.radius||10;for(const [id,r] of olRemoteAvatars){if(!r||!r.alive||String(id)===String(ol.id))continue;const seg=r.segments||[];for(let i=3;i<seg.length;i++){const q=seg[i],dx=px-q.x,dy=py-q.y,lim=pr+(r.radius||10)*.72;if(dx*dx+dy*dy<lim*lim){die(player,'online_player',r);return}}const dx=px-r.x,dy=py-r.y,lim=pr+(r.radius||10);if(dx*dx+dy*dy<lim*lim&&player.length<r.length){die(player,'online_player',r);return}}}
 function olApplySharedDropMessage(m){
  if(!m||!m.dropId)return;
  if(m.t==='drops_spawned'){
@@ -1528,12 +1529,7 @@ function updateHud(force){
  const be=$('bonus');if(b){be.textContent=b;be.classList.remove('hidden')}else be.classList.add('hidden');
  set('mini','Ameaça: '+(threat<.25?'baixa':threat<.55?'média':'alta')+' • '+(modeHud()||'Coma queijos • Evite ratos e paredes'));syncBoostBtn()}
 // Ranking ao vivo por tamanho (desempate por abates): top 5 + sua posição.
-function refreshLb(){const arr=[];for(const x of snakes)if(x.alive)arr.push(x);arr.sort((a,b)=>(b===player?score:(b.matchScore||0))-(a===player?score:(a.matchScore||0))||b.kills-a.kills);leader=arr.length>3&&arr[0]!==player&&!arr[0].boss?arr[0]:null;
- const idx=arr.indexOf(player);if(idx>=0){myRank=idx+1;rankTotal=arr.length}
- const pts=x=>x===player?score:(x.matchScore||0);const row=(x,i)=>`<div class="r${x===player?' me':''}"><i>${i+1}</i><b>${x.special?SPECIALS[x.special].icon+' ':''}${x.name}</b><span>${pts(x)} pts</span></div>`;
- let h=`<div class="h">Ranking #${myRank}/${rankTotal}</div>`;for(let i=0;i<Math.min(5,arr.length);i++)h+=row(arr[i],i);
- if(idx>=5)h+='<div class="sep"></div>'+row(player,idx);
- if(h!==lbHtml){lbHtml=h;lb.innerHTML=h}}
+function refreshLb(){const local=snakes.filter(x=>x.alive).map(x=>({ref:x,name:x.name||'Jogador',points:x===player?score:(x.matchScore||0),kills:x.kills||0,isMe:x===player}));const localIds=new Set(local.map(x=>String(x.ref.remote&&x.ref.remote.uid||'')));const remotes=[...olRemoteAvatars.entries()].filter(([id,x])=>id!==String(ol.id)&&x.alive&&!localIds.has(String(id))).map(([id,x])=>({ref:x,name:x.name||'Jogador',points:Math.max(0,Number(x.score)||0),kills:Math.max(0,Number(x.kills)||0),isMe:false,remoteId:id}));const all=local.concat(remotes);all.sort((a,b)=>b.points-a.points||b.kills-a.kills||a.name.localeCompare(b.name));const idx=all.findIndex(x=>x.isMe);if(idx>=0){myRank=idx+1;rankTotal=all.length}const row=(x,i)=>`<div class="r${x.isMe?' me':''}"><i>${i+1}</i><b>${x.ref.special?SPECIALS[x.ref.special].icon+' ':''}${x.name}</b><span>${x.points} pts</span></div>`;let h=`<div class="h">Ranking #${idx>=0?idx+1:'—'}/${all.length}</div>`;for(let i=0;i<Math.min(5,all.length);i++)h+=row(all[i],i);if(idx>=5)h+='<div class="sep"></div>'+row(all[idx],idx);if(h!==lbHtml){lbHtml=h;lb.innerHTML=h}}
 function syncBoostBtn(){bb.classList.toggle('hidden',!(running&&!paused&&!ended&&player&&player.alive));mm.classList.toggle('hidden',!(running&&!ended&&player));lb.classList.toggle('hidden',!(running&&!ended&&player))}
 function update(dt){
  deathUiTick();
@@ -1544,7 +1540,7 @@ function update(dt){
  {const pc=Math.round(player.boostE*100);if(pc!==boostPct){boostPct=pc;bb.style.setProperty('--p',pc)}bb.classList.toggle('on',!!player.boostActive);bb.classList.toggle('cd',player.boostE<CFG.boostMin&&!player.boostActive)}
  for(let i=0;i<snakes.length;i++){const s=snakes[i];if(s.magnetT>0&&s.alive){const pw=s.magnetPow||1,RR=skillVal(s,'magnet','rad')*Math.sqrt(pw),R2=RR*RR,SP=300*pw;for(const f of foods){const dx=s.x-f.x,dy=s.y-f.y,d2=dx*dx+dy*dy;if(d2<R2&&d2>1){const d=Math.sqrt(d2),m=Math.min(d,SP*dt);f.x+=dx/d*m;f.y+=dy/d*m}}}}
  for(let i=0;i<snakes.length;i++)eat(snakes[i]);
- collisions();if(olSurvivalOnline())olSurvivalCheck();
+ collisions();olRemoteCollisionTick();if(olSurvivalOnline())olSurvivalCheck();
  for(let i=0;i<bots.length;i++)if(!bots[i].alive&&!bots[i].eliminated&&gameTime>=bots[i].respawnAt&&(player.alive||(olSurvivalOnline()&&olSurvivalAlive()>0))&&(i<botTarget(threat)||(mpSlots[i]&&mpSlots[i].open)))respawnBot(i);
  specialRivalT-=dt;if(specialRivalT<=0&&player.alive&&mode!=='boss'&&!mpOnline){if(bots.some(b=>b.alive&&b.special))specialRivalT=10;else{const i=bots.findIndex(b=>!b.alive);if(i>=0){spawnSpecial(i,evtOf().id==='noite'?2:evtOf().id==='cacadaouro'?1:1+((Math.random()*3)|0));specialRivalT=rand(80,110)*(evtOf().id==='tesouro'?.55:evtOf().id==='noite'?.5:evtOf().id==='cacadaouro'?.45:1)}else specialRivalT=8}}
  if(!running)return;
