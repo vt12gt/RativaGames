@@ -1037,7 +1037,7 @@ function applyFood(s,f){const dbl=s.growT>0?2:1;let pts=10;
  if(!s.isBot){if(mpOnline&&s===player){if(f.type===0){if(++onlineCommonAcc>=5){onlineCommonAcc=0;onlineCollectedCheese++}}else if(f.type===1)onlineCollectedCheese+=5;else if(f.type>=2&&f.type<7)onlineCollectedCheese+=3;else if(f.type===7)onlineCollectedCheese+=100;else if(f.type===8)onlineCollectedCheese+=75}cheeseFood(f);if(ev&&ev.id==='ouro')pts*=2;addScore(pts);foodEaten++;if(f.type>=2){powersTaken++;sfx('bonus');showToast(toastFor(f.type,s))}else if(f.type===1){sfx('bonus');showToast('⭐ Queijo raro! +50')}else sfx('eat')}}
 function eat(s){if(!s.alive||((s===player&&mpOnline&&mpAway)||(s.remote&&s.remote.away)))return;const rr=s.radius+5;
  for(let i=foods.length-1;i>=0;i--){const f=foods[i],dx=f.x-s.x,dy=f.y-s.y,l=rr+f.r;if(dx*dx+dy*dy<l*l){
-  if(mpOnline&&f.sharedId){if(!f.claimPending){f.claimPending=true;olSend({t:'drop_claim',dropId:f.sharedId})}continue}
+  if(mpOnline&&f.sharedId){if(s!==player)continue;if(!f.claimPending){f.claimPending=true;olSend({t:'drop_claim',dropId:f.sharedId})}continue}
   f.dead=true;foods[i]=foods[foods.length-1];foods.pop();applyFood(s,f);burst(f.x,f.y,f.color,f.type?8:3)
  }}}
 function dropFood(s){
@@ -1983,7 +1983,7 @@ function edgeWarn(t){if(!CFG.solidWalls||!running||!player||!player.alive)return
  if(player.x<Z)band(wx,0,wx+Z,0,wx,0,Z,H,player.x);if(worldW-player.x<Z)band(wx+worldW,0,wx+worldW-Z,0,wx+worldW-Z,0,Z,H,worldW-player.x);
  if(player.y<Z)band(0,wy,0,wy+Z,0,wy,W,Z,player.y);if(worldH-player.y<Z)band(0,wy+worldH,0,wy+worldH-Z,0,wy+worldH-Z,W,Z,worldH-player.y)}
 function drawMini(){if(!(running&&player))return;const w=mm.width,h=mm.height,sx=w/worldW,sy=h/worldH;mmc.clearRect(0,0,w,h);mmc.fillStyle='#0a0f1ccc';mmc.fillRect(0,0,w,h);
- const liveMulti=!!(mpOnline||ol.inRoom);if(!liveMulti){for(const f of foods)if(f.type>=2){mmc.fillStyle=f.color;mmc.fillRect(f.x*sx-1,f.y*sy-1,3,3)}for(const b of bots)if(b.alive){mmc.fillStyle=b.color;const z=b.special?5:2.5;mmc.fillRect(b.x*sx-z/2,b.y*sy-z/2,z,z)}}
+ const liveMulti=!!(mpOnline||ol.inRoom);const hideBotsOnMini=liveMulti&&(mode==='treino'||ol.mode==='treino');if(!liveMulti){for(const f of foods)if(f.type>=2){mmc.fillStyle=f.color;mmc.fillRect(f.x*sx-1,f.y*sy-1,3,3)}}if(!hideBotsOnMini){for(const b of bots)if(b.alive){mmc.fillStyle=b.boss?'#ff183f':b.color;const z=b.special?5:3.5;mmc.fillRect(b.x*sx-z/2,b.y*sy-z/2,z,z)}}
  mmc.strokeStyle='#ffffff66';mmc.strokeRect(cam.x*sx,cam.y*sy,W*sx,H*sy);
  if(boss&&boss.alive){const bx=Math.max(0,Math.min(w,boss.x*sx)),by=Math.max(0,Math.min(h,boss.y*sy)),pulse=5+Math.sin(performance.now()/120)*1.5;mmc.save();mmc.shadowColor='#ff183f';mmc.shadowBlur=12;mmc.fillStyle='#ff183f';mmc.beginPath();mmc.arc(bx,by,pulse,0,6.2832);mmc.fill();mmc.shadowBlur=0;mmc.strokeStyle='#ffffff';mmc.lineWidth=1.8;mmc.beginPath();mmc.arc(bx,by,pulse+2,0,6.2832);mmc.stroke();mmc.restore()}
   if(liveMulti){for(const [id,r] of olRemoteAvatars){if(!r||!r.alive||String(id)===String(ol.id))continue;const rx=Math.max(0,Math.min(w,r.x*sx)),ry=Math.max(0,Math.min(h,r.y*sy));mmc.fillStyle='#35e7ff';mmc.beginPath();mmc.arc(rx,ry,4.5,0,6.2832);mmc.fill();mmc.strokeStyle='#ffffff';mmc.lineWidth=1.5;mmc.stroke();mmc.fillStyle='#35e7ff';mmc.fillRect(rx-1,ry-7,2,4)}}
