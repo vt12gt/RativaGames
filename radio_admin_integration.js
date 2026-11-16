@@ -1,6 +1,5 @@
 
 'use strict';
-const RADIO_API='https://ratopolis-radio-stream.juniorgmj69.workers.dev';
 let radioPlaylistTracks=[],radioAdTracks=[],radioPrograms=[];
 let publisherPc=null,publisherStream=null,publisherSession=null,publisherLease=null,publisherHeartbeat=null;
 async function radioApi(path,method='GET',body=null){
@@ -142,6 +141,22 @@ async function stopLive(){
  $('liveDescription').textContent='Transmissão encerrada.';$('endLive').disabled=true;$('goLive').disabled=false;
 }
 const oldCloudUpload=window.uploadCloudFiles;
-window.uploadCloudFiles=async function(ev){await oldCloudUpload(ev);await loadRadioConfig()};
+window.uploadCloudFiles=async function(ev){
+ const before=new Set((cloudTracks||[]).map(t=>t.key));
+ await oldCloudUpload(ev);
+ try{
+  const fresh=await radioApi('/api/tracks');
+  for(const t of (fresh.tracks||[])){
+   if(before.has(t.key)||Number(t.durationMs)>0)continue;
+   const ms=await new Promise(resolve=>{
+    const a=new Audio();a.preload='metadata';
+    a.onloadedmetadata=()=>{const n=Number.isFinite(a.duration)?Math.round(a.duration*1000):0;resolve(n)};
+    a.onerror=()=>resolve(0);a.src=RADIO_API+'/audio/'+encodeURIComponent(t.key);
+   });
+   if(ms>0)await radioApi('/api/tracks/'+encodeURIComponent(t.key),'PATCH',{durationMs:ms});
+  }
+ }catch(e){console.warn('Não foi possível registrar duração de todas as músicas:',e.message)}
+ await loadRadioConfig();
+};
 const oldCheckAccess=window.checkAccess;
 window.checkAccess=async function(){const ok=await oldCheckAccess();if(ok)await loadRadioConfig();return ok};
