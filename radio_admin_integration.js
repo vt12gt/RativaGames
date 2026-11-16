@@ -48,7 +48,7 @@ async function loadRadioConfig(){
   const result=await Promise.all([radioApi('/api/tracks'),radioApi('/api/playlist'),radioApi('/api/ads'),radioApi('/api/programs')]);
   cloudTracks=result[0].tracks||[];
   await ensureTrackDurations();
-  radioPlaylistTracks=result[1].playlist?.tracks||[];
+  radioPlaylistTracks=(result[1].playlist?.tracks||[]).map(t=>({...t,durationMs:Number(t.durationMs)||Number(cloudTracks.find(x=>x.key===t.key)?.durationMs)||0}));
   radioAdTracks=result[2].ads?.tracks||[];
   radioPrograms=result[3].programs||[];
   $('cloudCount').textContent=cloudTracks.length+' arquivos';
@@ -65,6 +65,7 @@ async function loadRadioConfig(){
 async function saveSharedPlaylist(){
  try{
   await ensureTrackDurations();
+  radioPlaylistTracks=radioPlaylistTracks.map(t=>({...t,durationMs:Number(t.durationMs)||Number(cloudTracks.find(x=>x.key===t.key)?.durationMs)||0}));
   if(!radioPlaylistTracks.length)radioPlaylistTracks=(cloudTracks||[]).map(t=>({key:t.key,name:t.name,durationMs:Number(t.durationMs||0)}));
   if(!radioPlaylistTracks.length)throw new Error('Envie músicas para a biblioteca antes de criar a playlist.');
   const d=await radioApi('/api/playlist','POST',{tracks:radioPlaylistTracks});
