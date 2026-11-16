@@ -906,8 +906,8 @@ function pickCos(c){const ids=Object.keys(CAT[c]).filter(k=>!CAT[c][k][3]&&CAT[c
 function spawnFood(x,y,type,drop,color,r){if(foods.length>=CFG.foodCap&&!(type>=7))return null;const f={fid:++mpFoodSeq,x,y,r:r||(type?9:rand(4,7)),color:color||(type===1?'#ffd23e':type===2?'#46e6ff':type===3?'#7dff6b':type===4?'#c78bff':type===5?'#5ad1ff':type===6?'#ffb347':COLORS[(Math.random()*COLORS.length)|0]),phase:rand(0,6.28),type:type||0,drop:!!drop,dead:false};foods.push(f);return f}
 const randFood=type=>{let x,y,t=0;do{x=rand(B.x0+40,B.x1-40);y=rand(B.y0+40,B.y1-40);t++}while(t<8&&OBS.length&&inObs(x,y,24));return spawnFood(x,y,type||0,false)};
 const foodTarget=()=>Math.min(CFG.foodCap-60,Math.round(worldW*worldH/24000));
-function bestValue(){return (mode==='quick'||mode==='competitive')?bestQuick:mode==='survival'?stats.bestTime:mode==='challenge'?stats.bestChallenge:(prog.mrec[mode]||0)}
-function fmtBest(m){m=m||mode;return (m==='quick'||m==='competitive')?bestQuick+' pts':m==='survival'?fmtTime(stats.bestTime):m==='challenge'?stats.bestChallenge+' pts':(prog.mrec[m]||0)+' pts'}
+function bestValue(){return mode==='quick'?bestQuick:mode==='survival'?stats.bestTime:mode==='challenge'?stats.bestChallenge:(prog.mrec[mode]||0)}
+function fmtBest(m){m=m||mode;return m==='quick'?bestQuick+' pts':m==='survival'?fmtTime(stats.bestTime):m==='challenge'?stats.bestChallenge+' pts':(prog.mrec[m]||0)+' pts'}
 function rebuildSnakes(){snakes.length=0;snakes.push(player);for(const b of bots)snakes.push(b)}
 function init(){const r0=Math.random;if(mode==='daily')Math.random=mulb((today()*2654435761)>>>0);try{init1()}finally{Math.random=r0}}
 function init1(){
@@ -1026,7 +1026,7 @@ function move(s,dt){
  if(s.pending>0){if(s.length>=CFG.maxLen)s.pending=0;else{s.growAcc+=dt;while(s.growAcc>=.05&&s.pending>0){s.growAcc-=.05;s.pending--;addSeg(s)}}}
  if(s.hitWall){s.hitWall=false;if(s.boss)bossCrash(s);else die(s,'wall',null)}}
 function burst(x,y,c,n){n=Math.min(Math.round(n*QUAL[prefs.quality].part),CFG.particleCap-particles.length);for(let i=0;i<n;i++){const a=rand(0,6.28),v=rand(25,120);particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rand(.25,.7),max:.7,color:c,r:rand(2,4)})}}
-function addScore(n){if(player&&player.multT>0)n*=2;score+=n;if((mode==='quick'||mode==='competitive')&&score>bestQuick){bestQuick=score;bestDirty=true}}
+function addScore(n){if(player&&player.multT>0)n*=2;score+=n;if(mode==='quick'&&score>bestQuick){bestQuick=score;bestDirty=true}}
 function applyFood(s,f){const dbl=s.growT>0?2:1;let pts=10;
  if(f.type===0)s.pending+=dbl;
  else if(f.type===1){s.pending+=3*dbl;pts=50}
