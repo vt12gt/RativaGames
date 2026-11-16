@@ -157,6 +157,11 @@ async function stopLive(){
  $('liveDot').className='dot';$('liveState').textContent='Fora do ar';$('liveTitle').textContent='A RÁDIO ESTÁ OFFLINE';
  $('liveDescription').textContent='Transmissão encerrada.';$('endLive').disabled=true;$('goLive').disabled=false;
 }
+window.saveSettings=async function(){
+ const name=$('stationName').value.trim()||'Rádio Ratópolis';
+ try{localStorage.setItem('radio_settings',JSON.stringify({name,interval:Math.max(5,Math.min(240,Number($('adInterval').value)||30))}));await saveSharedAds();$('settingsStatus').textContent='Intervalo dos anúncios salvo no servidor; nome salvo neste dispositivo.'}
+ catch(e){toast('Falha ao salvar preferências: '+e.message)}
+};
 const oldCloudUpload=window.uploadCloudFiles;
 window.uploadCloudFiles=async function(ev){
  const before=new Set((cloudTracks||[]).map(t=>t.key));
