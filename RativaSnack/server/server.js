@@ -103,7 +103,9 @@ function extractRatopolisPlayer(data) {
     const level = Number(user.level ?? user.nivel ?? user.nível ?? 1) || 1;
     const xp = Number(user.xp ?? user.experience ?? 0) || 0;
     if (id != null && String(id).trim() && nick != null && String(nick).trim()) {
-      return { id: String(id), nick: String(nick), level, xp };
+      const rawRoles = user.roles ?? user.role ?? user.cargos ?? user.permissions ?? [];
+      const roles = (Array.isArray(rawRoles) ? rawRoles : [rawRoles]).map(r => String(typeof r === 'object' ? (r.id ?? r.slug ?? r.name ?? r.role ?? '') : r).toLowerCase().trim()).filter(Boolean);
+      return { id: String(id), nick: String(nick), level, xp, roles };
     }
   }
   return null;
@@ -346,6 +348,8 @@ wss.on('connection', (ws, req, user) => {
   socketsByUser.set(user.id, ws);
   ws.user = user;
   send(ws, { t: 'hello' });
+  const staffRoles = Array.isArray(user.roles) ? user.roles.filter(role => ['founder','spadmin','gm'].includes(role)) : [];
+  if (staffRoles.length) send(ws, { t: 'staff_panel_access', allowed: true, roles: staffRoles });
 
   const existingRoomId = roomByUser.get(user.id);
   const existingRoom = existingRoomId && rooms.get(existingRoomId);
@@ -387,6 +391,24 @@ wss.on('connection', (ws, req, user) => {
     if (m.t === 'st') {
       const target = room.players.get(String(m.to || ''));
       if (target && target.ws) send(target.ws, { t: 'st', d: String(m.d || '').slice(0, 60000) });
+      return;
+    }
+    if (m.t === 'staff_boss') {
+      const roles = Array.isArray(user.roles) ? user.roles : [];
+      if (!roles.some(role => ['founder','spadmin','gm'].includes(role))) {
+        send(ws, { t: 'staff_boss_result', ok: false, error: 'staff_permission_required' });
+        return;
+      }
+      if (room.mode !== 'treino') {
+        send(ws, { t: 'staff_boss_result', ok: false, error: 'live_room_only' });
+        return;
+      }
+      const action = m.action === 'stop' ? 'stop' : 'start';
+      const now = Date.now();
+      if (now - (ws._lastStaffBossAt || 0) < 3000) return;
+      ws._lastStaffBossAt = now;
+      broadcast(room, { t: 'boss_event', action, by: user.nick, at: now });
+      broadcast(room, { t: 'staff_boss_result', ok: true, action, by: user.nick });
       return;
     }
     if (m.t === 'avatar') {
