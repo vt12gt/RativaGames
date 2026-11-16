@@ -1302,12 +1302,15 @@ function olShowGlobalAnnouncement(m){
 function olRelayPeer(uid){uid=String(uid||'');let c=mpConns.find(x=>String(x.uid)===uid);if(c)return c;c={uid,nick:'Jogador',open:true,slot:mpConns.length+1,dc:{get readyState(){return ol.ws&&ol.ws.readyState===1?'open':'closed'},get bufferedAmount(){return ol.ws?ol.ws.bufferedAmount:0},send(data){olSend({t:'st',to:uid,d:String(data)})},close(){this._closed=true}}};mpConns.push(c);return c}
 const olRemoteAvatars=new Map();let olAvatarClock=0;
 function olRelayAvatarTick(dt){
- if(!mpOnline||!ol.inRoom||!player)return;
- olAvatarClock+=dt;if(olAvatarClock<.08)return;olAvatarClock=0;
+ if(!mpOnline||!ol.inRoom||!player||!ol.ws||ol.ws.readyState!==WebSocket.OPEN)return;
+ olAvatarClock+=dt;if(olAvatarClock<.05)return;olAvatarClock%=.05;
+ // Descarta snapshots quando a rede já está congestionada; não acumula posições antigas.
+ if(ol.ws.bufferedAmount>98304)return;
  const seg=Array.isArray(player.segments)?player.segments:[],g=[];
- const step=Math.max(1,Math.ceil(seg.length/90));
- for(let i=0;i<seg.length;i+=step)g.push(Math.round(seg[i].x),Math.round(seg[i].y));
- if(seg.length&&((seg.length-1)%step!==0)){const q=seg[seg.length-1];g.push(Math.round(q.x),Math.round(q.y))}
+ // 36 amostras distribuídas pelo corpo reduzem bastante o tamanho dos pacotes.
+ const maxPoints=36,step=Math.max(1,Math.ceil(seg.length/maxPoints));
+ for(let i=0;i<seg.length&&g.length<maxPoints*2;i+=step)g.push(Math.round(seg[i].x),Math.round(seg[i].y));
+ if(seg.length&&g.length<maxPoints*2&&((seg.length-1)%step!==0)){const q=seg[seg.length-1];g.push(Math.round(q.x),Math.round(q.y))}
  olSend({t:'avatar',a:{x:Math.round(player.x),y:Math.round(player.y),d:+(player.angle||0).toFixed(3),l:Math.max(1,Math.floor(player.length||seg.length)),al:player.alive?1:0,r:player.radius,c:player.color,n:ol.nick||prefs.nick||'Jogador',sc:Math.max(0,Number(score)||0),ki:Math.max(0,Number(kills)||0),sk:player.skin||prefs.skin||'liso',ac:player.acc||'nenhum',ta:player.tail||'normal',rt:player.rat||prefs.rat||'nenhum',ht:player.hat||'nenhum',cl:player.cloth||'nenhum',g}});
 }
 function olApplyRemoteAvatar(m){
@@ -1899,7 +1902,7 @@ function drawMini(){if(!(running&&player))return;const w=mm.width,h=mm.height,sx
  mmc.strokeStyle='#ffffff66';mmc.strokeRect(cam.x*sx,cam.y*sy,W*sx,H*sy);
  if(liveMulti){for(const [id,r] of olRemoteAvatars){if(!r||!r.alive||String(id)===String(ol.id))continue;const rx=Math.max(0,Math.min(w,r.x*sx)),ry=Math.max(0,Math.min(h,r.y*sy));mmc.fillStyle='#35e7ff';mmc.beginPath();mmc.arc(rx,ry,4.5,0,6.2832);mmc.fill();mmc.strokeStyle='#ffffff';mmc.lineWidth=1.5;mmc.stroke();mmc.fillStyle='#35e7ff';mmc.fillRect(rx-1,ry-7,2,4)}}
  if(player.alive){mmc.fillStyle='#fff';mmc.beginPath();mmc.arc(player.x*sx,player.y*sy,4,0,6.2832);mmc.fill();mmc.strokeStyle='#35e7ff';mmc.lineWidth=1;mmc.stroke()}}
-function draw(t){background();drawFood(t);for(const b of bots)drawSnake(b);for(const remote of olRemoteAvatars.values()){if(remote.tx!==undefined){const k=.22,dx=(remote.tx-remote.x)*k,dy=(remote.ty-remote.y)*k;remote.x+=dx;remote.y+=dy;remote.angle+=diff(remote.angle,remote.ta)*k;for(let i=0;i<remote.segments.length;i++){const q=remote.segments[i],tq=remote.targetSegments&&remote.targetSegments[i];if(tq){q.x+=(tq.x-q.x)*k;q.y+=(tq.y-q.y)*k}else{q.x+=dx;q.y+=dy}}}drawSnake(remote)}if(player)drawSnake(player);
+function draw(t){background();drawFood(t);for(const b of bots)drawSnake(b);for(const remote of olRemoteAvatars.values()){if(remote.tx!==undefined){const rt=performance.now(),rd=Math.min(.05,Math.max(.001,(rt-(remote.renderAt||rt-16))/1000)),k=1-Math.exp(-rd/.085);remote.renderAt=rt;const dx=(remote.tx-remote.x)*k,dy=(remote.ty-remote.y)*k;remote.x+=dx;remote.y+=dy;remote.angle+=diff(remote.angle,remote.ta)*k;const target=remote.targetSegments||[];for(let i=0;i<Math.max(remote.segments.length,target.length);i++){let q=remote.segments[i],tq=target[i];if(!q&&tq){q=remote.segments[i]={x:tq.x,y:tq.y}}else if(q&&!tq){q.x+=dx;q.y+=dy}else if(q&&tq){q.x+=(tq.x-q.x)*k;q.y+=(tq.y-q.y)*k}}if(remote.segments.length>target.length&&target.length)remote.segments.length=target.length}drawSnake(remote)}if(player)drawSnake(player);
  for(const p of particles){ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x-cam.x,p.y-cam.y,p.r,0,6.2832);ctx.fill()}ctx.globalAlpha=1;
  if(dyingT>0&&lastKiller&&lastKiller.alive){const kx=lastKiller.x-cam.x,ky=lastKiller.y-cam.y;ctx.strokeStyle='#ff5d73';ctx.lineWidth=3;ctx.beginPath();ctx.arc(kx,ky,26+4*Math.sin(t*14),0,6.2832);ctx.stroke()}
  edgeWarn(t);indicators(t);bossBar(t);drawSecrets(-cam.x,-cam.y);drawEmotes();if((mmN=(mmN+1)%3)===0)drawMini();
