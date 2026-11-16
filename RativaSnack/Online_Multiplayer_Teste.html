@@ -1355,6 +1355,7 @@ function olMsg(m){
  switch(m.t){
   case 'avatar':olApplyRemoteAvatar(m);break;
   case 'boss_event':if(m.action==='start')olSpawnStaffBoss();else if(m.action==='stop')olStopStaffBoss();break;
+  case 'boss_magnet':{const f=spawnFood(Number(m.x)||0,Number(m.y)||0,9,true,'#ff334f',20);if(f)f.bossMagnet=true;showToast('🧲 Ímã do Boss apareceu! Cada jogador pode coletar o seu.',4);break;}
   case 'staff_boss_result':{const st=document.getElementById('rativaBossStatus');if(st)st.textContent=m.ok?(m.action==='start'?'Boss ativado na sala!':'Boss encerrado na sala!'):'Ação recusada: '+String(m.error||'sem permissão');break;}
   case 'room_clock':ol.roomElapsedMs=Math.max(0,Number(m.elapsedMs)||0);ol.roomClockServerTime=Number(m.serverTime)||Date.now();break;
   case 'match_ranking':ol.matchRanking=Array.isArray(m.ranking)?m.ranking:[];ol.matchRankingMode=String(m.mode||ol.mode||'');break;
@@ -1419,7 +1420,7 @@ function olCancel(){olLeaveRoom();ol.view=false;olHome()}
 window.addEventListener('storage',e=>{if(e.key==='ratopolis_session_token'&&(!e.newValue||e.newValue!==ol.token)){ol.token='';ol.id='';ol.nick='';if(ol.inRoom)olLeaveRoom();if(mpOnline){mpLeave();toMenu()}if(mpEl('mp')&&mpEl('mp').style.display!=='none')olHome();showToast('Sessão RativaGames encerrada.',4)}});
 let wbRun=false,wbRunId=0,wbA0=100;
 const bossNotes=[];
-function bossKilled(b){if(mpOnline)onlineCollectedCheese+=300;if(!mpOnline||wbRun)prog.bkv[Math.min(3,b.bv||0)]++;addScore(1000+500*(b.bv||0));b.dropMul=3;die(b,'body',player);if(mpOnline&&ol.isHost)olSend({t:'world_event',event:{kind:'drops',source:'bot',victimId:'boss',items:[{x:Math.round(b.x),y:Math.round(b.y),type:9,color:'#ff334f',r:20}]}});bossDown=true;bossN++;bossWinT=30;const rr=evtOf().id==='chefes'?2:1;
+function bossKilled(b){if(mpOnline)onlineCollectedCheese+=300;if(!mpOnline||wbRun)prog.bkv[Math.min(3,b.bv||0)]++;addScore(1000+500*(b.bv||0));b.dropMul=3;die(b,'body',player);if(mpOnline&&ol.isHost)olSend({t:'world_event',event:{kind:'boss_magnet',x:Math.round(b.x),y:Math.round(b.y)}});bossDown=true;bossN++;bossWinT=30;const rr=evtOf().id==='chefes'?2:1;
  if(wbRun)wbKill(b);else if(!mpOnline){prog.bossWins++;earn(300*rr,'chefe');addXp(200*rr);bossNotes.push('👹 '+b.name+' derrotado! +'+300*rr+' 🧀 +'+200*rr+' XP')}
  showToast('🧀 Colete os queijos! Valem 3x por 30 s',4);saveProg()}
 function wbPtsGet(){return prog.wbPtsId===wbRunId?prog.wbPts:0}
