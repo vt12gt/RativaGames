@@ -108,7 +108,10 @@ async function saveProgram(){
  try{
   const tracks=radioPlaylistTracks.length?radioPlaylistTracks:cloudTracks.map(t=>({key:t.key,name:t.name,durationMs:Number(t.durationMs||0)}));
   if(!tracks.length)throw new Error('A playlist musical está vazia.');
-  const d=await radioApi('/api/programs','POST',{programs:[{id:radioPrograms[0]?.id||undefined,name,start,end,days,tracks,repeatMode:'playlist',enabled:true}]});
+  const programId=radioPrograms[0]?.id||('program_'+Date.now());
+  const nextProgram={id:programId,name,start,end,days,tracks,repeatMode:'playlist',enabled:true};
+  const nextPrograms=radioPrograms.filter(p=>p.id!==programId).concat(nextProgram);
+  const d=await radioApi('/api/programs','POST',{programs:nextPrograms});
   radioPrograms=d.programs||[];$('programStatus').textContent=name+' · '+start+'–'+end+' · salvo no servidor';toast('Programação salva no servidor.');
  }catch(e){toast('Falha ao salvar programação: '+e.message)}
 }
