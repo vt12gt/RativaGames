@@ -89,7 +89,7 @@ export default {async scheduled(event,env,ctx){if(!env.DB)return;const now=new D
  }
  const a=await auth(request,env);if(!a)return out({ok:false,error:'invalid_session'},401,cors);const id=a.id;
 
-  const eventStaff=async()=>{try{const r=await fetch('https://rato-snack-multiplayer.onrender.com/api/admin/announcements/access',{headers:{Authorization:'Bearer '+bearer(request)},cache:'no-store'});const j=await r.json();return r.ok&&j.allowed===true?j:null}catch{return null}};
+  const eventStaff=async()=>{try{const r=await fetch('https://rativasnack-online-match-test.onrender.com/api/admin/announcements/access',{headers:{Authorization:'Bearer '+bearer(request)},cache:'no-store'});const j=await r.json();return r.ok&&j.allowed===true?j:null}catch{return null}};
   if(p==='/api/rato-snack/private-profile'&&request.method==='GET'){
    const row=await env.DB.prepare('SELECT full_name,pix_key,updated_at FROM rato_snack_pix_profiles WHERE user_id=?').bind(id).first();
    const pix=await decryptPix(String(row?.pix_key||''),env);
