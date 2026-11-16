@@ -107,7 +107,7 @@ table.rec{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0}.rec t
 .hero{position:relative;overflow:hidden;border:0;border-radius:2vh;padding:2.4vh 2.2vw;text-align:left;display:flex;flex-direction:column;justify-content:center;gap:1.2vh;background:radial-gradient(120% 90% at 85% 100%,#ffcf5a 0%,rgba(255,207,90,0) 60%),linear-gradient(180deg,#f7a321 0%,#e8721a 55%,#c4501a 100%);box-shadow:0 .9vh 0 #8e3a10,0 1.6vh 1.8vh #5a210a55,inset 0 .5vh 0 #ffffff55;text-shadow:0 .3vh 0 #7a300f}
 .hero-t{font-size:7.4vh;line-height:1.02;max-width:80%;-webkit-text-stroke:.2vh #7a300f;paint-order:stroke fill}
 .hero-d{font-size:3.4vh;line-height:1.2;max-width:62%;font-weight:800;color:#fff3d6}
-.hero-tag{align-self:flex-start;margin-top:.6vh;padding:1.1vh 2vw;border-radius:1.4vh;background:linear-gradient(#58d83a,#2fa51d);box-shadow:0 .6vh 0 #1b6a10,inset 0 .3vh 0 #ffffff66;font-size:3.4vh;text-shadow:0 .25vh 0 #17620e}
+.hero-tag{position:absolute;left:2.2vw;bottom:3vh;align-self:auto;margin:0;padding:1.1vh 2vw;border-radius:1.4vh;background:linear-gradient(#58d83a,#2fa51d);box-shadow:0 .6vh 0 #1b6a10,inset 0 .3vh 0 #ffffff66;font-size:3.4vh;text-shadow:0 .25vh 0 #17620e;z-index:3}.hero-d{max-width:72%;font-size:2.7vh;line-height:1.18;padding-bottom:7vh;text-wrap:pretty}
 .hero-mouse{position:absolute;right:3vw;bottom:2vh;font-size:22vh;line-height:1;font-style:normal;text-shadow:none;filter:drop-shadow(0 1vh .6vh #5a210a88);transform:rotate(-8deg)}
 .hero-cheese{position:absolute;right:21vw;bottom:2.4vh;font-size:9vh;font-style:normal;text-shadow:none;filter:drop-shadow(0 .6vh .4vh #5a210a88);transform:rotate(12deg)}
 .side{display:flex;flex-direction:column;gap:1.5vh;min-height:0}
@@ -633,15 +633,15 @@ let pgState={shop:0,vis:0},achSel='',tutOpen=false,deferredInstall=null;
 const SENSM=[1.3,1,.72],CSZ=[.85,1,1.25],VOLM=[.45,.75,1],QUAL={alta:{dpr:2,part:1},media:{dpr:1.5,part:.6},baixa:{dpr:1,part:.3}};
 const TURNS=[{n:'Suave',v:3.4},{n:'Normal',v:4.4},{n:'Rápido',v:5.6}];
 const MODES={
- quick:{name:'Partida rápida',desc:'Entre na arena, coma queijos, cresça e supere seu recorde de pontos. Termina quando seu rato é eliminado.',limit:0},
- survival:{name:'Sobrevivência',desc:'Fique vivo pelo maior tempo possível. A ameaça cresce mais rápido. O recorde é o tempo sobrevivido.',limit:0},
- challenge:{name:'Desafio de eliminações',desc:'Elimine 6 ratos em até 2:00 para vencer. Cada eliminação vale 100 pontos.',limit:120,goal:6},
- team:{name:'Equipes',desc:'Azul × Vermelho: você e seus aliados (anel azul) não se ferem. Faça 15 eliminações antes do time rival ou lidere em 3:00.',limit:180,tgoal:15},
- boss:{name:'Chefe gigante',desc:'Enfrente o Rei Rato! Fuja da investida marcada em vermelho: se ele bater na parede fica atordoado e você pode acertar a cabeça dele.',limit:0},
- infinite:{name:'Infinito',desc:'Ondas sem fim: cada onda traz mais ratos, mais rápidos, e rivais especiais. Sobreviva o máximo que puder.',limit:0},
- daily:{name:'Desafio diário',desc:'A mesma arena para todos no dia. Você tem 2:00 para fazer o máximo de pontos e bater seu recorde.',limit:120},
- treino:{name:'Sala Ao Vivo',desc:'Entre ao vivo para praticar sem pressão: só 4 rivais, sem recordes, XP nem queijos. Ótimo para testar visuais e controles.',limit:0},
- mundial:{name:'Boss Mundial',desc:'Só abre às 10:00 e às 22:00 (1 hora cada). Colosso gigante com prêmio especial, uma vez por janela.',limit:0}};
+ quick:{name:'Partida rápida',desc:'Entre na arena e colete queijos para crescer e marcar pontos. Elimine ratos menores para fazê-los soltar queijos. A partida termina quando você é eliminado; tente superar seu recorde!',limit:0},
+ survival:{name:'Sobrevivência',desc:'Seu objetivo é permanecer vivo pelo maior tempo possível. A ameaça aumenta conforme a partida avança, com ratos mais rápidos e perigosos. Fuja, desvie e bata seu recorde de sobrevivência.',limit:0},
+ challenge:{name:'Desafio de eliminações',desc:'Elimine 6 ratos em até 2 minutos para vencer. Cada abate vale 100 pontos, e o tempo que sobrar aumenta sua pontuação. Use o impulso e encurrale os rivais!',limit:120,goal:6},
+ team:{name:'Equipes',desc:'Azul contra Vermelho: aliados identificados pelo anel azul não se ferem. Trabalhe com seu time para alcançar 15 eliminações ou terminar na liderança quando os 3 minutos acabarem.',limit:180,tgoal:15},
+ boss:{name:'Chefe gigante',desc:'Enfrente o Rei Rato em uma batalha contra chefe. Desvie da investida marcada em vermelho; quando ele bater na parede e ficar atordoado, ataque a cabeça para causar dano.',limit:0},
+ infinite:{name:'Infinito',desc:'Enfrente ondas que não acabam. Cada nova onda traz mais ratos, inimigos mais rápidos e rivais especiais. Sobreviva e faça a maior pontuação possível.',limit:0},
+ daily:{name:'Desafio diário',desc:'Todos enfrentam a mesma arena do dia. Você tem 2 minutos para marcar o máximo de pontos e disputar seu melhor resultado. Uma tentativa válida por dia; volte amanhã para uma nova arena.',limit:120},
+ treino:{name:'Sala Ao Vivo',desc:'Sala de evento multiplayer em tempo real, com jogadores conectados no mesmo servidor. Participe dos eventos organizados pela Staff, colete queijos e converse com a sala pelo áudio online.',limit:0},
+ mundial:{name:'Boss Mundial',desc:'Evento global contra um chefe gigante, disponível nos horários anunciados. Una forças com os outros jogadores, ataque o colosso e dispute a recompensa especial da janela.',limit:0}};
 const ARCH={
  guloso:{n:'Guloso',i:'🧀',food:1.35,special:1,caution:1,hunt:0,wander:.15},
  cacador:{n:'Caçador',i:'⚔️',food:.9,special:.9,caution:.9,hunt:1,wander:.1},
