@@ -636,6 +636,7 @@ const MODES={
  quick:{name:'Partida rápida',desc:'Entre na arena e colete queijos para crescer e marcar pontos. Elimine ratos menores para fazê-los soltar queijos. A partida termina quando você é eliminado; tente superar seu recorde!',limit:0},
  survival:{name:'Sobrevivência',desc:'Seu objetivo é permanecer vivo pelo maior tempo possível. A ameaça aumenta conforme a partida avança, com ratos mais rápidos e perigosos. Fuja, desvie e bata seu recorde de sobrevivência.',limit:0},
  challenge:{name:'Desafio de eliminações',desc:'Elimine 6 ratos em até 2 minutos para vencer. Cada abate vale 100 pontos, e o tempo que sobrar aumenta sua pontuação. Use o impulso e encurrale os rivais!',limit:120,goal:6},
+ competitive:{name:'Competitivo',desc:'Dispute pontuação e eliminações na arena. Seu melhor resultado fica registrado separadamente no histórico.',limit:0},
  team:{name:'Equipes',desc:'Azul contra Vermelho: aliados identificados pelo anel azul não se ferem. Trabalhe com seu time para alcançar 15 eliminações ou terminar na liderança quando os 3 minutos acabarem.',limit:180,tgoal:15},
  boss:{name:'Chefe gigante',desc:'Enfrente o Rei Rato em uma batalha contra chefe. Desvie da investida marcada em vermelho; quando ele bater na parede e ficar atordoado, ataque a cabeça para causar dano.',limit:0},
  infinite:{name:'Infinito',desc:'Enfrente ondas que não acabam. Cada nova onda traz mais ratos, inimigos mais rápidos e rivais especiais. Sobreviva e faça a maior pontuação possível.',limit:0},
@@ -697,7 +698,7 @@ const START_ITEMS={shield:{n:'Escudo inicial',i:'🛡️',price:70,d:'Começa a 
  magnet:{n:'Ímã inicial',i:'🧲',price:70,d:'Começa com ímã de comida',fn:s=>{s.magnetT=skillVal(s,'magnet','dur')}},
  boost:{n:'Velocidade inicial',i:'⚡',price:70,d:'Começa com velocidade extra',fn:s=>{s.boostT=skillVal(s,'boost','dur')}},
  mult:{n:'Pontos ×2 inicial',i:'✖️',price:70,d:'Começa com pontos em dobro',fn:s=>{s.multT=skillVal(s,'mult','dur')}}};
-const MICON={quick:'⚡',survival:'⏳',challenge:'🎯',team:'🔵',boss:'👹',infinite:'🌊',daily:'📅',treino:'🧪',mundial:'👑'};
+const MICON={quick:'⚡',competitive:'🏆',survival:'⏳',challenge:'🎯',team:'🔵',boss:'👹',infinite:'🌊',daily:'📅',treino:'🧪',mundial:'👑'};
 /* ===== Economia de queijos (moeda) ===== */
 const ECO_MAX=1e9;let roundEarn={},ecoDirty=false,foodAcc=0,onlineCollectedCheese=0,onlineCommonAcc=0;
 function loadEco(){const o=readObj('ratoSnackEco')||{},e={cheese:numOk(o.cheese,0,ECO_MAX)?+o.cheese:0,earned:numOk(o.earned,0,1e12)?+o.earned:0,spent:numOk(o.spent,0,1e12)?+o.spent:0,hist:[],itemPriceStep:numOk(o.itemPriceStep,0,1000)?Math.floor(+o.itemPriceStep):0};
@@ -905,16 +906,16 @@ function pickCos(c){const ids=Object.keys(CAT[c]).filter(k=>!CAT[c][k][3]&&CAT[c
 function spawnFood(x,y,type,drop,color,r){if(foods.length>=CFG.foodCap&&!(type>=7))return null;const f={fid:++mpFoodSeq,x,y,r:r||(type?9:rand(4,7)),color:color||(type===1?'#ffd23e':type===2?'#46e6ff':type===3?'#7dff6b':type===4?'#c78bff':type===5?'#5ad1ff':type===6?'#ffb347':COLORS[(Math.random()*COLORS.length)|0]),phase:rand(0,6.28),type:type||0,drop:!!drop,dead:false};foods.push(f);return f}
 const randFood=type=>{let x,y,t=0;do{x=rand(B.x0+40,B.x1-40);y=rand(B.y0+40,B.y1-40);t++}while(t<8&&OBS.length&&inObs(x,y,24));return spawnFood(x,y,type||0,false)};
 const foodTarget=()=>Math.min(CFG.foodCap-60,Math.round(worldW*worldH/24000));
-function bestValue(){return mode==='quick'?bestQuick:mode==='survival'?stats.bestTime:mode==='challenge'?stats.bestChallenge:(prog.mrec[mode]||0)}
-function fmtBest(m){m=m||mode;return m==='quick'?bestQuick+' pts':m==='survival'?fmtTime(stats.bestTime):m==='challenge'?stats.bestChallenge+' pts':(prog.mrec[m]||0)+' pts'}
+function bestValue(){return (mode==='quick'||mode==='competitive')?bestQuick:mode==='survival'?stats.bestTime:mode==='challenge'?stats.bestChallenge:(prog.mrec[mode]||0)}
+function fmtBest(m){m=m||mode;return (m==='quick'||m==='competitive')?bestQuick+' pts':m==='survival'?fmtTime(stats.bestTime):m==='challenge'?stats.bestChallenge+' pts':(prog.mrec[m]||0)+' pts'}
 function rebuildSnakes(){snakes.length=0;snakes.push(player);for(const b of bots)snakes.push(b)}
 function init(){const r0=Math.random;if(mode==='daily')Math.random=mulb((today()*2654435761)>>>0);try{init1()}finally{Math.random=r0}}
 function init1(){
  setArena();setB(0);shrW=0;shrFood=0;goalIdx=0;revived=0;leader=null;specialKills=0;revengeDone=false;lbHtml='';roundCounted=false;powersTaken=0;matchStreak=0;streakN=0;lastKillT=-99;lastGain=null;boss=null;teamScore=[0,0];wave=1;waveKills=0;ev=null;evT=rand(50,80)*evtScale();bossWinT=0;score=0;kills=0;foodEaten=0;gameTime=0;threat=0;dyingT=0;lastKiller=null;causeText='';specialT=rand(8,12);specialRivalT=rand(50,70);toastT=0;nearT=0;nearBots=0;
  roundPrevBest=bestValue();foods=[];particles=[];bots=[];
  player=mkSnake(worldW/2,worldH/2,0,prefs.color,prefs.nick||'Você',false,8,null);applyCosmetics(player);
- const onlineSolo=mpOnline&&(!Array.isArray(ol.players)||ol.players.filter(p=>p&&p.online!==false).length<=1);
- if(!mpOnline||onlineSolo){const botCount=mpOnline?3:BOTS.length;for(let i=0;i<botCount;i++){let x=0,y=0,t=0;do{x=rand(260,worldW-260);y=rand(260,worldH-260);t++}while(t<10&&(Math.hypot(x-player.x,y-player.y)<420||inObs(x,y,70)));
+ const onlineSolo=mpOnline&&ol.mode!=='treino'&&(!Array.isArray(ol.players)||ol.players.filter(p=>p&&p.online!==false).length<=1);
+ if(!mpOnline||onlineSolo){const botCount=mpOnline?(ol.mode==='treino'?0:3):BOTS.length;for(let i=0;i<botCount;i++){let x=0,y=0,t=0;do{x=rand(260,worldW-260);y=rand(260,worldH-260);t++}while(t<10&&(Math.hypot(x-player.x,y-player.y)<420||inObs(x,y,70)));
   const ang=Math.atan2(worldH/2-y,worldW/2-x)+rand(-.6,.6);bots.push(mkSnake(x,y,ang,COLORS[i%COLORS.length],BOTS[i][0],true,Math.floor(rand(7,17)),BOTS[i][1]))}}
  rebuildSnakes();if(!mpOnline)for(let i=botTarget(0);i<bots.length;i++){bots[i].alive=false;bots[i].respawnAt=0}
  const target=foodTarget();for(let i=0;i<target;i++)randFood(Math.random()<.05?1:0);
@@ -925,7 +926,7 @@ function respawnBot(i){let x=0,y=0,t=0;const far=(px,py)=>{for(const s of snakes
 function olOnlineHumanCount(){return Array.isArray(ol.players)?ol.players.filter(p=>p&&p.online!==false).length:(ol.id?1:0)}
 function olSyncSoloBots(){
  if(!mpOnline||!running)return;
- const want=olOnlineHumanCount()===1?3:0;
+ const want=ol.mode==='treino'?0:(olOnlineHumanCount()===1?3:0);
  if(!want){if(bots.length){for(const b of bots)b.alive=false;bots=[];rebuildSnakes()}return}
  if(bots.length>=3)return;
  for(let i=bots.length;i<3;i++){let x=0,y=0,t=0;do{x=rand(260,worldW-260);y=rand(260,worldH-260);t++}while(t<10&&(Math.hypot(x-player.x,y-player.y)<420||inObs(x,y,70)));
@@ -1025,7 +1026,7 @@ function move(s,dt){
  if(s.pending>0){if(s.length>=CFG.maxLen)s.pending=0;else{s.growAcc+=dt;while(s.growAcc>=.05&&s.pending>0){s.growAcc-=.05;s.pending--;addSeg(s)}}}
  if(s.hitWall){s.hitWall=false;if(s.boss)bossCrash(s);else die(s,'wall',null)}}
 function burst(x,y,c,n){n=Math.min(Math.round(n*QUAL[prefs.quality].part),CFG.particleCap-particles.length);for(let i=0;i<n;i++){const a=rand(0,6.28),v=rand(25,120);particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rand(.25,.7),max:.7,color:c,r:rand(2,4)})}}
-function addScore(n){if(player&&player.multT>0)n*=2;score+=n;if(mode==='quick'&&score>bestQuick){bestQuick=score;bestDirty=true}}
+function addScore(n){if(player&&player.multT>0)n*=2;score+=n;if((mode==='quick'||mode==='competitive')&&score>bestQuick){bestQuick=score;bestDirty=true}}
 function applyFood(s,f){const dbl=s.growT>0?2:1;let pts=10;
  if(f.type===0)s.pending+=dbl;
  else if(f.type===1){s.pending+=3*dbl;pts=50}
@@ -1061,6 +1062,7 @@ function killPts(){return mode==='challenge'?CFG.challengeKillPts:CFG.killPts}
 // ===== Etapa 5: equipes, chefe, eventos, ondas =====
 const tm=s=>mode!=='team'?-1:mpRole==='client'?(s.tm>=0?s.tm:0):s===player?0:s.special?-2:(s.tm===undefined?(s.tm=bots.indexOf(s)%2===0?1:0):s.tm);
 function initMode(){bossDown=false;bossN=0;bossNotes.length=0;if(mode==='boss'&&!mpOnline){const i=bots.length-1;spawnSpecial(i,4);boss=bots[i];boss.boss=true;boss.hp=100;boss.stun=0;boss.phase='chase';boss.pt=3;boss.speedBase=90;bossVariant(boss);showToast('👹 '+boss.name+' apareceu! Desvie das investidas.',3)}
+ else if(evtOf().id==='chefes'&&mode!=='treino'&&mode!=='mundial'&&mode!=='boss'){spawnSpecial(0,4);boss=bots[0];boss.boss=true;boss.hp=100;boss.stun=0;boss.phase='chase';boss.pt=3;boss.speedBase=90;bossVariant(boss);showToast('👹 Boss do Evento do Dia apareceu! Derrote-o para concluir o evento.',4)}
  else if(mode==='team')showToast('🔵 Seu time (azul) × 🔴 vermelho: 15 eliminações!',3);else if(mode==='infinite')showToast('🌊 Onda 1: elimine 5 ratos',3)}
 function bossCrash(b){b.x=Math.min(worldW-b.radius-5,Math.max(b.radius+5,b.x));b.y=Math.min(worldH-b.radius-5,Math.max(b.radius+5,b.y));if(b.phase==='dash'){b.stun=b.stunT||6;b.phase='stun';b.speedBase=0;showToast('💥 Chefe atordoado! Acerte a cabeça dele!',3)}else b.targetAngle=Math.atan2(worldH/2-b.y,worldW/2-b.x)}
 function bossTick(dt){const b=boss;if(!b||!b.alive)return;let tg=player&&player.alive?player:null;if(mpOnline){let bd=1e18;tg=null;for(const x of snakes){if(x===b||!x.alive||!(x===player||x.remote))continue;const d=(x.x-b.x)**2+(x.y-b.y)**2;if(d<bd){bd=d;tg=x}}}if(!tg)return;b.pt-=dt;b.hitCd=(b.hitCd||0)-dt;b.flash=(b.flash||0)-dt;const ang=Math.atan2(tg.y-b.y,tg.x-b.x);
@@ -1629,7 +1631,7 @@ function update(dt){
  for(let i=0;i<snakes.length;i++){const s=snakes[i];if(s.magnetT>0&&s.alive){const pw=s.magnetPow||1,RR=skillVal(s,'magnet','rad')*Math.sqrt(pw),R2=RR*RR,SP=300*pw;for(const f of foods){const dx=s.x-f.x,dy=s.y-f.y,d2=dx*dx+dy*dy;if(d2<R2&&d2>1){const d=Math.sqrt(d2),m=Math.min(d,SP*dt);f.x+=dx/d*m;f.y+=dy/d*m}}}}
  for(let i=0;i<snakes.length;i++)eat(snakes[i]);
  collisions();olRemoteCollisionTick();if(olSurvivalOnline())olSurvivalCheck();
- if(!mpOnline||olOnlineHumanCount()===1)for(let i=0;i<bots.length;i++)if(!bots[i].alive&&!bots[i].eliminated&&gameTime>=bots[i].respawnAt&&(player.alive||(olSurvivalOnline()&&olSurvivalAlive()>0))&&(i<botTarget(threat)||(mpSlots[i]&&mpSlots[i].open)))respawnBot(i);
+ if(!mpOnline||(ol.mode!=='treino'&&olOnlineHumanCount()===1))for(let i=0;i<bots.length;i++)if(!bots[i].alive&&!bots[i].eliminated&&gameTime>=bots[i].respawnAt&&(player.alive||(olSurvivalOnline()&&olSurvivalAlive()>0))&&(i<botTarget(threat)||(mpSlots[i]&&mpSlots[i].open)))respawnBot(i);
  specialRivalT-=dt;if(specialRivalT<=0&&player.alive&&mode!=='boss'&&!mpOnline){if(bots.some(b=>b.alive&&b.special))specialRivalT=10;else{const i=bots.findIndex(b=>!b.alive);if(i>=0){spawnSpecial(i,evtOf().id==='noite'?2:evtOf().id==='cacadaouro'?1:1+((Math.random()*3)|0));specialRivalT=rand(80,110)*(evtOf().id==='tesouro'?.55:evtOf().id==='noite'?.5:evtOf().id==='cacadaouro'?.45:1)}else specialRivalT=8}}
  if(!running)return;
  if(foods.length<foodTarget()&&Math.random()<dt*8)randFood(Math.random()<.05?1:0);
@@ -1656,7 +1658,7 @@ function endGame(kind){document.body.classList.remove('rativa-playing');if(mpOnl
  if(mode==='survival')score=Math.max(score,0);
  const m=mode==='quick'?score:mode==='survival'?gameTime:score,prev=roundPrevBest,isRec=m>prev&&m>0;
  stats.games++;stats.kills+=kills;stats.food+=foodEaten;stats.time+=gameTime;stats.bestSize=Math.max(stats.bestSize,player.length);stats.bestKills=Math.max(stats.bestKills,kills);
- if(mode==='survival'&&isRec)stats.bestTime=gameTime;if(mode==='challenge'&&isRec)stats.bestChallenge=score;if(mode==='quick'&&isRec){bestQuick=score;bestDirty=true}if((mode==='team'||mode==='boss'||mode==='infinite'||mode==='daily')&&isRec)prog.mrec[mode]=score;
+ if(mode==='survival'&&isRec)stats.bestTime=gameTime;if(mode==='challenge'&&isRec)stats.bestChallenge=score;if((mode==='quick'||mode==='competitive')&&isRec){bestQuick=score;bestDirty=true}if((mode==='competitive'||mode==='team'||mode==='boss'||mode==='infinite'||mode==='daily')&&isRec)prog.mrec[mode]=score;
  saveStats();flushSave();countRound(kind);olSaveRecord(kind,m);
  let title='Fim de jogo!',text='';
  if(kind==='win'){title='Vitória! 🏆';text=mode==='boss'?`Você derrotou o Rei Rato em ${fmtTime(gameTime)}!`:mode==='team'?teamTxt('win'):`Você eliminou ${kills} ratos em ${fmtTime(gameTime)}.`}
