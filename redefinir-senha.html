@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#171329">
+<title>Redefinir senha · RativaGames</title>
+<style>
+:root{color-scheme:dark;--bg:#100d1c;--card:#1d1830;--text:#f7f3ff;--muted:#b8aecb;--accent:#8b68ff;--line:#39304f}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px;background:radial-gradient(circle at top,#302052 0,#100d1c 55%);font-family:Arial,sans-serif;color:var(--text)}
+main{width:min(100%,440px);background:var(--card);border:1px solid var(--line);border-radius:22px;padding:30px;box-shadow:0 18px 60px #0008}
+.logo{text-align:center;font-size:34px;margin-bottom:8px}h1{text-align:center;font-size:25px;margin:8px 0}p{color:var(--muted);line-height:1.5;text-align:center;margin:0 0 24px}
+label{display:block;font-size:14px;margin:16px 0 7px}input{width:100%;padding:14px;border-radius:11px;border:1px solid var(--line);background:#100d1c;color:white;font-size:16px;outline:none}input:focus{border-color:var(--accent)}
+button{width:100%;border:0;border-radius:11px;padding:15px;margin-top:22px;background:linear-gradient(110deg,#7654ed,#a36bff);color:white;font-weight:bold;font-size:16px}
+button:disabled{opacity:.6}.status{margin-top:18px;padding:12px;border-radius:10px;text-align:center;line-height:1.45;color:var(--muted);overflow-wrap:anywhere}.status.good{background:#163526;color:#a8f0c4}.status.bad{background:#421f2a;color:#ffc0cb}.foot{text-align:center;font-size:12px;margin-top:22px;color:#887e9e}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<div class="logo">🎮</div>
+<h1>Crie uma nova senha</h1>
+<p>Você está na página segura de redefinição de senha do RativaGames. Esta etapa é independente do login.</p>
+<form id="resetForm">
+<label for="password">Nova senha</label>
+<input id="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Mínimo de 8 caracteres" required>
+<label for="confirm">Confirmar nova senha</label>
+<input id="confirm" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Digite a senha novamente" required>
+<button id="submit" type="submit">Salvar nova senha</button>
+</form>
+<div id="status" class="status" role="status" aria-live="polite">Validando o link de recuperação…</div>
+<div class="foot">RATIVA GAMES · Recuperação segura de conta</div>
+</main>
+<script>
+const API='https://ratopolis-api-dev-v30.juniorgmj69.workers.dev';
+const token=new URLSearchParams(location.search).get('reset_token');
+const form=document.getElementById('resetForm'),statusBox=document.getElementById('status'),submit=document.getElementById('submit');
+function status(message,type=''){statusBox.textContent=message;statusBox.className='status '+type}
+if(!token){form.classList.add('hidden');status('Link de recuperação ausente. Solicite um novo e-mail de recuperação.','bad')}
+else status('Link recebido. Defina sua nova senha abaixo.');
+form.addEventListener('submit',async event=>{
+ event.preventDefault();
+ const password=document.getElementById('password').value;
+ const confirm=document.getElementById('confirm').value;
+ if(password!==confirm){status('As senhas não são iguais. Confira e tente novamente.','bad');return}
+ if(password.length<8||password.length>128){status('A senha deve ter entre 8 e 128 caracteres.','bad');return}
+ submit.disabled=true;status('Salvando sua nova senha…');
+ try{
+  const response=await fetch(API+'/api/password/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,password})});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||data.ok===false)throw new Error(data.mensagem||data.erro||data.error||'Não foi possível redefinir a senha. Solicite um novo link.');
+  form.classList.add('hidden');history.replaceState({},document.title,location.pathname);
+  status(data.mensagem||'Senha redefinida com sucesso! Agora você já pode voltar ao portal e entrar com a nova senha.','good');
+  const link=document.createElement('a');link.href='https://vt12gt.github.io/RativaGames/';link.textContent=' Ir para o portal RativaGames';link.style.cssText='display:block;text-align:center;color:#c8b6ff;margin-top:16px';
+  statusBox.appendChild(link);
+ }catch(error){status(error.message||'Erro ao salvar a senha.','bad')}
+ finally{submit.disabled=false}
+});
+</script>
+</body>
+</html>
