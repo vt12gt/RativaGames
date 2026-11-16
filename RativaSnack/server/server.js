@@ -391,9 +391,11 @@ wss.on('connection', (ws, req, user) => {
     }
     if (m.t === 'avatar') {
       const now = Date.now();
-      if (now - (ws._lastAvatarAt || 0) < 65) return;
+      if (now - (ws._lastAvatarAt || 0) < 45) return;
       ws._lastAvatarAt = now;
       if (!m.a || typeof m.a !== 'object') return;
+      // Não retransmite snapshots antigos quando o socket do destinatário está congestionado.
+      if (ws.bufferedAmount > 98304) return;
       const a = m.a;
       if (![a.x, a.y, a.d].every(v => Number.isFinite(Number(v)))) return;
       broadcast(room, { t: 'avatar', id: user.id, a }, user.id);
