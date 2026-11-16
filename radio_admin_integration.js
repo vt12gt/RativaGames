@@ -182,3 +182,11 @@ window.uploadCloudFiles=async function(ev){
 };
 const oldCheckAccess=window.checkAccess;
 window.checkAccess=async function(){const ok=await oldCheckAccess();if(ok)await loadRadioConfig();return ok};
+const appNode=$('app');
+if(appNode){
+ const appObserver=new MutationObserver(()=>{
+  if(!appNode.classList.contains('hidden')){appObserver.disconnect();loadRadioConfig()}
+ });
+ appObserver.observe(appNode,{attributes:true,attributeFilter:['class']});
+ if(!appNode.classList.contains('hidden')){appObserver.disconnect();loadRadioConfig()}
+}
