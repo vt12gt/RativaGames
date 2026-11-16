@@ -129,6 +129,9 @@ function roomPlayers(room) {
     nick: p.nick,
     level: p.level || 1,
     online: !!(p.ws && p.ws.readyState === WebSocket.OPEN),
+    score: Math.max(0, Number(p.score) || 0),
+    kills: Math.max(0, Number(p.kills) || 0),
+    size: Math.max(0, Number(p.size) || 0),
     slot: p.slot
   }));
 }
@@ -164,7 +167,8 @@ function createRoom(mode) {
     hostType: 'bot-pro',
     started: false,
     countdown: null,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    lastRankAt: 0
   };
   rooms.set(room.id, room);
   return room;
@@ -194,7 +198,7 @@ function addPlayer(room, user, ws) {
   while (nextSlot < MAX_PLAYERS && usedSlots.has(nextSlot)) nextSlot++;
   const slot = old ? old.slot : (firstHuman ? 0 : nextSlot);
   if (slot >= MAX_PLAYERS) { send(ws, { t: 'full' }); return; }
-  const player = old || { id: user.id, nick: user.nick, level: user.level || 1, ws: null, reconnectTimer: null, slot };
+  const player = old || { id: user.id, nick: user.nick, level: user.level || 1, ws: null, reconnectTimer: null, slot, score: 0, kills: 0, size: 8 };
   player.nick = user.nick;
   player.level = user.level || 1;
   player.ws = ws;
@@ -419,10 +423,26 @@ wss.on('connection', (ws, req, user) => {
       const a = m.a;
       if (![a.x, a.y, a.d].every(v => Number.isFinite(Number(v)))) return;
       // Não enfileira posições antigas para clientes cujo WebSocket já está congestionado.
+      const roomPlayer = room.players.get(user.id);
+      roomPlayer.score = Math.max(0, Math.min(1000000000, Math.floor(Number(a.sc) || 0)));
+      roomPlayer.kills = Math.max(0, Math.min(1000000, Math.floor(Number(a.ki) || 0)));
+      roomPlayer.size = Math.max(0, Math.min(10000, Math.floor(Number(a.l) || 0)));
       const snapshot = { t: 'avatar', id: user.id, a };
       for (const target of room.players.values()) {
         if (target.id === user.id || !target.ws || target.ws.bufferedAmount > 98304) continue;
         send(target.ws, snapshot);
+      }
+      // Ranking compartilhado da sala: pontuação e abates vêm do snapshot autenticado de cada jogador.
+      if (now - (room.lastRankAt || 0) >= 250) {
+        room.lastRankAt = now;
+        const ranking = [...room.players.values()].map(p => ({
+          id: p.id, nick: p.nick, level: p.level || 1,
+          online: !!(p.ws && p.ws.readyState === WebSocket.OPEN),
+          score: Math.max(0, Number(p.score) || 0),
+          kills: Math.max(0, Number(p.kills) || 0),
+          size: Math.max(0, Number(p.size) || 0), slot: p.slot
+        })).sort((a, b) => b.score - a.score || b.kills - a.kills || a.nick.localeCompare(b.nick));
+        broadcast(room, { t: 'match_ranking', mode: room.mode, ranking, serverTime: now });
       }
       return;
     }
