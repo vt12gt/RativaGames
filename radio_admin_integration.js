@@ -11,6 +11,17 @@ async function radioApi(path,method='GET',body=null){
  if(!r.ok||d.ok===false)throw new Error(d.message||d.error||('HTTP '+r.status));
  return d;
 }
+async function ensureTrackDurations(){
+ const missing=(cloudTracks||[]).filter(t=>!(Number(t.durationMs)>0));
+ for(let i=0;i<missing.length;i+=3){
+  await Promise.all(missing.slice(i,i+3).map(async t=>{
+   try{
+    const ms=await new Promise(resolve=>{const a=new Audio();a.preload='metadata';a.onloadedmetadata=()=>resolve(Number.isFinite(a.duration)?Math.round(a.duration*1000):0);a.onerror=()=>resolve(0);a.src=RADIO_API+'/audio/'+encodeURIComponent(t.key)});
+    if(ms>0){await radioApi('/api/tracks/'+encodeURIComponent(t.key),'PATCH',{durationMs:ms});t.durationMs=ms}
+   }catch(e){console.warn('Duração não identificada para '+t.name,e.message)}
+  }));
+ }
+}
 function renderSharedList(boxId,items,type){
  const box=$(boxId);box.replaceChildren();
  if(!items.length){box.innerHTML='<div class="empty">Nenhum item cadastrado no servidor.</div>';return}
@@ -36,6 +47,7 @@ async function loadRadioConfig(){
  try{
   const result=await Promise.all([radioApi('/api/tracks'),radioApi('/api/playlist'),radioApi('/api/ads'),radioApi('/api/programs')]);
   cloudTracks=result[0].tracks||[];
+  await ensureTrackDurations();
   radioPlaylistTracks=result[1].playlist?.tracks||[];
   radioAdTracks=result[2].ads?.tracks||[];
   radioPrograms=result[3].programs||[];
@@ -52,6 +64,7 @@ async function loadRadioConfig(){
 }
 async function saveSharedPlaylist(){
  try{
+  await ensureTrackDurations();
   if(!radioPlaylistTracks.length)radioPlaylistTracks=(cloudTracks||[]).map(t=>({key:t.key,name:t.name,durationMs:Number(t.durationMs||0)}));
   if(!radioPlaylistTracks.length)throw new Error('Envie músicas para a biblioteca antes de criar a playlist.');
   const d=await radioApi('/api/playlist','POST',{tracks:radioPlaylistTracks});
