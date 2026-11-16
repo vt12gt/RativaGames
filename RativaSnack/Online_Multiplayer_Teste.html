@@ -1190,7 +1190,7 @@ function rwHtml(){wkEnsure();const left=7-((today()+4)%7),rk=(r,d)=>d?2:r?0:1,ca
  return `<div class="mnote">🗓️ Missões da semana • faltam ${left} dia(s) • completar todas: +300 🧀 e o 🐀 Rato Dourado (na 1ª vez)</div>${W.map(x=>x.h).join('')}<div class="mnote">🏅 Marcos de vitórias, chefes e eventos • resgate único • o 10º chefe libera o 🐀 Rato Domador de Chefes</div>${M.map(x=>x.h).join('')}`}
 /* ===== Multiplayer ONLINE: conta + salas automáticas por WebSocket. Nada disso roda no modo offline. ===== */
 const RATO_SERVER_URL='https://rativasnack-online-match-test.onrender.com';
-let mpOnline=false;const ol={url:RATO_SERVER_URL,token:'',id:'',nick:'',ws:null,connectPromise:null,inRoom:false,isHost:false,hostId:null,hostType:'bot-pro',hostLabel:'Bot Pro',mode:'quick',players:[],tries:0,bye:false,view:false,survivalAliveTime:0,staffRoles:[],roomId:'',authoritative:false};
+let mpOnline=false;const ol={url:RATO_SERVER_URL,token:'',id:'',nick:'',ws:null,connectPromise:null,inRoom:false,isHost:false,hostId:null,hostType:'bot-pro',hostLabel:'Bot Pro',mode:'quick',players:[],tries:0,bye:false,view:false,survivalAliveTime:0,staffRoles:[],roomId:'',authoritative:false,reconnectTimer:0,reconnectScheduled:false,reconnectNeedsJoin:false,reconnectNoticeShown:false};
 const olEsc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const OL_ERR={sessao_invalida:'Sua sessão RativaGames expirou. Entre novamente pelo portal.',conexao:'Não foi possível conectar ao servidor online.'};
 function olLoad(){try{ol.token=String(localStorage.getItem('ratopolis_session_token')||'')}catch(e){ol.token=''}ol.url=RATO_SERVER_URL;olSave()}
@@ -1213,9 +1213,32 @@ async function olPlay(requestedMode=mode){await olConnect();if(requestedMode==='
 function olDC(uid){return{get readyState(){return ol.ws&&ol.ws.readyState===1?'open':'closed'},get bufferedAmount(){return ol.ws?ol.ws.bufferedAmount:0},send(str){olSend({t:'st',to:uid,d:str})},close(){}}}
 function olGuestDC(){return{get readyState(){return ol.ws&&ol.ws.readyState===1?'open':'closed'},send(str){olSend({t:'in',d:str})},close(){}}}
 function olHello(){olSend({t:'in',d:JSON.stringify({h:ol.nick,rat:prefs.rat,col:prefs.color,sk:prefs.skin,hat:prefs.hat,cloth:prefs.cloth})})}
-function olLeaveRoom(){ol.authoritative=false;olRemoteAvatars.clear();olVoiceStop();ol.roomId='';olLiveEvent=null;const eh=document.getElementById('rativaLiveEventHud');if(eh)eh.remove();if(ol.ws&&ol.ws.readyState===1&&ol.inRoom)olSend(ol.isHost?{t:'ctl',k:'end'}:{t:'leave'});ol.inRoom=false;ol.players=[];ol.bye=false;mpConns.length=0;mpSlots.length=0}
-function olClosed(code){olVoiceStop();if(ol.bye){ol.bye=false;return}if(code===4001){showToast('⚠️ Sua conta entrou em outro aparelho.',4);ol.inRoom=false;if(mpOnline){mpLeave();toMenu()}return}if(code===4003){ol.inRoom=false;olClearExpired();showToast('Sua sessão RativaGames expirou. Entre novamente no portal.',5);if(mpOnline){mpLeave();toMenu()}return}
- if(!ol.token)return;ol.reconnectNeedsJoin=!!ol.inRoom;ol.tries++;if(ol.tries>12){if(ol.inRoom){showToast('Conexão perdida.',3);ol.inRoom=false;if(mpOnline){mpLeave();toMenu()}}return}if(ol.inRoom)showToast('📶 Conexão perdida. Reconectando…',3);setTimeout(()=>{if(ol.token&&navigator.onLine!==false)olConnect().then(()=>{ol.tries=0;setTimeout(()=>{if(ol.reconnectNeedsJoin&&ol.inRoom&&ol.ws&&ol.ws.readyState===1){ol.reconnectNeedsJoin=false;olSend({t:'play',mode:ol.mode||mode})}},1200)}).catch(()=>olClosed(1006))},Math.min(8000,1000*ol.tries))}
+function olLeaveRoom(){if(ol.reconnectTimer){clearTimeout(ol.reconnectTimer);ol.reconnectTimer=0}ol.reconnectScheduled=false;ol.reconnectNeedsJoin=false;ol.reconnectNoticeShown=false;ol.authoritative=false;olRemoteAvatars.clear();olVoiceStop();ol.roomId='';olLiveEvent=null;const eh=document.getElementById('rativaLiveEventHud');if(eh)eh.remove();if(ol.ws&&ol.ws.readyState===1&&ol.inRoom)olSend(ol.isHost?{t:'ctl',k:'end'}:{t:'leave'});ol.inRoom=false;ol.players=[];ol.bye=false;mpConns.length=0;mpSlots.length=0}
+function olClosed(code){
+ olVoiceStop();
+ if(ol.bye){ol.bye=false;return}
+ if(code===4001){showToast('⚠️ Sua conta entrou em outro aparelho.',4);ol.inRoom=false;if(mpOnline){mpLeave();toMenu()}return}
+ if(code===4003){ol.inRoom=false;olClearExpired();showToast('Sua sessão RativaGames expirou. Entre novamente no portal.',5);if(mpOnline){mpLeave();toMenu()}return}
+ if(!ol.token||!ol.inRoom&&!ol.view)return;
+ ol.reconnectNeedsJoin=ol.reconnectNeedsJoin||!!ol.inRoom;
+ if(ol.reconnectScheduled)return;
+ ol.tries++;
+ if(ol.tries>20){if(ol.inRoom){showToast('Conexão instável. Tente entrar novamente.',4);ol.inRoom=false;if(mpOnline){mpLeave();toMenu()}}return}
+ if(ol.inRoom&&!ol.reconnectNoticeShown){showToast('📶 Conexão perdida. Reconectando…',3);ol.reconnectNoticeShown=true}
+ ol.reconnectScheduled=true;
+ const delay=Math.min(6000,700*Math.pow(1.55,Math.min(ol.tries-1,8)));
+ ol.reconnectTimer=setTimeout(async()=>{
+  ol.reconnectScheduled=false;ol.reconnectTimer=0;
+  if(!ol.token)return;
+  if(navigator.onLine===false)return;
+  try{
+   await olConnect();
+   if(ol.reconnectNeedsJoin&&ol.inRoom){
+    if(!olSend({t:'play',mode:ol.mode||mode}))throw new Error('rejoin_send_failed');
+   }else{ol.tries=0;ol.reconnectNoticeShown=false}
+  }catch(_){olClosed(1006)}
+ },delay)
+}
 function olSlotBind(c){const i=Math.max(0,c.slot-1);mpSlots[i]=c;if(bots[i]){if(!bots[i].alive)respawnBot(i);mpBind(bots[i],c)}}
 function olHostStart(){ol.survivalAliveTime=0;ol.survivalRewarded=false;mpSlots.length=0;for(const c of mpConns)if(c.open)mpSlots[Math.max(0,c.slot-1)]=c;mpRole='host';mpPending=true;mpOnline=true;ol.tally={};ol.rw={};ol.tw=[0,0];ol.survivalEntrants=ol.mode==='survival'?1+mpSlots.filter(Boolean).length:0;ol.roomStart=Date.now();ol.left=-1;mpClose();startGame(ol.mode||mode)}
 function olShowStaffPanelButton(roles){ol.staffRoles=Array.isArray(roles)?roles:[];const btn=document.getElementById('rativaStaffPanelBtn');const allowed=ol.staffRoles.some(role=>['founder','spadmin','gm'].includes(role));if(btn){btn.classList.toggle('hidden',!allowed);if(!btn.dataset.bound){btn.dataset.bound='1';btn.addEventListener('click',olOpenStaffPanel)}}olSyncStaffHudButton()}
@@ -1247,30 +1270,45 @@ async function olEnsurePixEventEntry(ev){if(!ev||ev.event_type!=='pix'||olPixReg
 function olUpdateGlobalEventBanner(events){let el=document.getElementById('rativaGlobalEventBanner');const list=Array.isArray(events)?events:[];if(!list.length){if(el)el.remove();return}if(!el){el=document.createElement('div');el.id='rativaGlobalEventBanner';el.style.cssText='position:fixed;z-index:2147481998;top:calc(env(safe-area-inset-top) + 40px);left:50%;transform:translateX(-50%);width:min(94vw,460px);max-height:54px;overflow:hidden;padding:5px 8px;border:1px solid rgba(205,165,255,.55);border-radius:8px;background:rgba(18,10,30,.82);color:#fff;text-align:center;font:700 10px/1.35 system-ui;pointer-events:none;box-shadow:0 2px 8px #0005';document.body.append(el)}el.textContent='🌐 EVENTOS ('+list.length+'): '+list.map(e=>(e.event_type==='pix'?'💸 Pix R$ '+(Number(e.prize_cents||0)/100).toLocaleString('pt-BR',{minimumFractionDigits:2}):'🧀 '+Number(e.reward_amount||0).toLocaleString('pt-BR')+' queijos')+' • '+Number(e.goal_value||0).toLocaleString('pt-BR')+' pts • Sala '+String(e.room_id||'').slice(0,12)).join('  |  ')}
 function olEventTick(now){
  const quick=document.getElementById('rativaEventQuickBtn');if(quick)quick.remove();
- if(!ol.inRoom||ol.mode!=='treino'||!ol.roomId||!ol.token){const e=document.getElementById('rativaLiveEventHud');if(e)e.remove();const globalBanner=document.getElementById('rativaGlobalEventBanner');if(globalBanner)globalBanner.remove();olLiveEvent=null;olEventStartAt=0;olEventScoreBase=0;return}
- if(now-olEventLastPoll>1800){olEventLastPoll=now;const pollSentAt=Date.now();olEventApi('/api/rato-snack/events?room_id='+encodeURIComponent(ol.roomId)).then(r=>{
-  if(r.s!==200||!r.ok)return;
-  if(Number.isFinite(Number(r.server_time)))olEventClockOffsetMs=Number(r.server_time)-((pollSentAt+Date.now())/2);olUpdateGlobalEventBanner(r.events||[]);const incoming=r.event||null,previousId=olLiveEvent&&olLiveEvent.id;
-  olLiveEvent=incoming;
-  if(!incoming){const h=document.getElementById('rativaLiveEventHud');if(h)h.remove();olEventStartAt=0;olEventScoreBase=0;return}
-  if(incoming.status==='active'&&olEventScoreEventId!==incoming.id){olEventScoreEventId=incoming.id;olEventStartAt=Date.parse(incoming.started_at||'')||0;olEventScoreBase=Math.max(0,Math.floor(Number(score)||0));olEventLastProgress=0;olEventResultUntil=0}
-  if((incoming.status==='won'||incoming.status==='expired')&&olEventLastNotice!==incoming.id+':'+incoming.status){olEventLastNotice=incoming.id+':'+incoming.status;olEventResultUntil=Date.now()+6500;if(incoming.status==='won')showToast('🏆 '+(incoming.winner_nickname||'Um jogador')+' venceu o evento da Staff!',6);else showToast('⌛ O tempo do evento acabou. Evento encerrado.',5)}
-  if(incoming.status!=='active'&&incoming.status!=='won'&&incoming.status!=='expired'&&incoming.status!=='pending'){const h=document.getElementById('rativaLiveEventHud');if(h)h.remove()}
- }).catch(()=>{})}
- if(!olLiveEvent)return;
- const h=olEventHud();
- if(olLiveEvent.status==='pending'){h.style.display='block';h.innerHTML='⏸️ <b>EVENTO PREPARADO</b><br>'+Number(olLiveEvent.goal_value||10000).toLocaleString('pt-BR')+' pontos • aguardando a Staff iniciar';return}
- if(olLiveEvent.event_type==='pix'&&olPixRegisteredEventId!==olLiveEvent.id){h.style.display='block';h.innerHTML='💸 <b>EVENTO PIX</b><br>Confirme sua chave Pix para participar';olEnsurePixEventEntry(olLiveEvent);return}
- if(olLiveEvent.status==='active'){
-  const endsAt=Date.parse(olLiveEvent.ends_at||'');const remaining=Number.isFinite(endsAt)?Math.max(0,endsAt-(Date.now()+olEventClockOffsetMs)):null;
-  if(remaining===null){h.style.display='block';h.innerHTML='🔄 <b>SINCRONIZANDO EVENTO</b><br>Aguardando horário oficial do servidor'}
-  else if(remaining>0){h.style.display='block';h.innerHTML='🏁 <b>DESAFIO AO VIVO</b><br>'+Number(olLiveEvent.goal_value).toLocaleString('pt-BR')+' pontos • '+fmtTime(Math.ceil(remaining/1000))+' restantes'}
-  else{h.style.display='block';h.innerHTML='⌛ <b>TEMPO ESGOTADO</b><br>Evento encerrado pelo servidor.'}
-  if(remaining>0&&running&&!ended&&now-olEventLastProgress>1200){olEventLastProgress=now;const eventScore=Math.max(0,Math.floor(Number(score)||0)-olEventScoreBase);olEventApi('/api/rato-snack/events/progress',{event_id:olLiveEvent.id,room_id:ol.roomId,score:eventScore}).then(r=>{if(r.s===200&&r.claimed&&r.winner){if(r.pix){showToast('🏆 Você venceu o Evento Pix! Prêmio de R$ '+(Number(r.prize_cents||0)/100).toLocaleString('pt-BR',{minimumFractionDigits:2})+'. Aguarde a transferência manual da Staff.',8)}else{eco.cheese=(Number(eco.cheese)||0)+Number(r.reward.amount||0);flushSave()}olEventLastPoll=0}}).catch(()=>{})}
- }else if(olLiveEvent.status==='won'){
-  if(Date.now()<olEventResultUntil){h.style.display='block';h.innerHTML='🏆 <b>EVENTO CONCLUÍDO</b><br>Vencedor: '+olEsc(olLiveEvent.winner_nickname||'—')+' • '+(olLiveEvent.event_type==='pix'?'R$ '+(Number(olLiveEvent.prize_cents||0)/100).toLocaleString('pt-BR',{minimumFractionDigits:2}):Number(olLiveEvent.reward_amount||0).toLocaleString('pt-BR')+' 🧀')}
-  else h.remove();
- }else if(olLiveEvent.status==='expired'){h.style.display='block';h.innerHTML='⌛ <b>EVENTO ENCERRADO</b><br>O tempo terminou sem vencedor.'}else h.remove();
+ if(!ol.inRoom||ol.mode!=='treino'||!ol.roomId||!ol.token){
+  const e=document.getElementById('rativaLiveEventHud');if(e)e.remove();
+  const globalBanner=document.getElementById('rativaGlobalEventBanner');if(globalBanner)globalBanner.remove();
+  olLiveEvent=null;olEventStartAt=0;olEventScoreBase=0;return
+ }
+ if(now-olEventLastPoll>1800){
+  olEventLastPoll=now;const pollSentAt=Date.now();
+  olEventApi('/api/rato-snack/events?room_id='+encodeURIComponent(ol.roomId)).then(r=>{
+   if(r.s!==200||!r.ok)return;
+   if(Number.isFinite(Number(r.server_time)))olEventClockOffsetMs=Number(r.server_time)-((pollSentAt+Date.now())/2);
+   olUpdateGlobalEventBanner(r.events||[]);
+   const incoming=r.event||null;olLiveEvent=incoming;
+   if(!incoming){olEventStartAt=0;olEventScoreBase=0;return}
+   if(incoming.status==='active'&&olEventScoreEventId!==incoming.id){
+    olEventScoreEventId=incoming.id;olEventStartAt=Date.parse(incoming.started_at||'')||0;
+    olEventScoreBase=Math.max(0,Math.floor(Number(score)||0));olEventLastProgress=0;olEventResultUntil=0
+   }
+   if(incoming.event_type==='pix'&&incoming.status==='active'&&olPixRegisteredEventId!==incoming.id)olEnsurePixEventEntry(incoming);
+   if((incoming.status==='won'||incoming.status==='expired')&&olEventLastNotice!==incoming.id+':'+incoming.status){
+    olEventLastNotice=incoming.id+':'+incoming.status;
+    if(incoming.status==='won')showToast('🏆 '+(incoming.winner_nickname||'Um jogador')+' venceu o evento da Staff!',6);
+    else showToast('⌛ O tempo do evento acabou. Evento encerrado.',5)
+   }
+  }).catch(()=>{})
+ }
+ if(!olLiveEvent||olLiveEvent.status!=='active')return;
+ const endsAt=Date.parse(olLiveEvent.ends_at||'');
+ const remaining=Number.isFinite(endsAt)?Math.max(0,endsAt-(Date.now()+olEventClockOffsetMs)):0;
+ if(remaining>0&&running&&!ended&&now-olEventLastProgress>1200){
+  olEventLastProgress=now;
+  const eventScore=Math.max(0,Math.floor(Number(score)||0)-olEventScoreBase);
+  olEventApi('/api/rato-snack/events/progress',{event_id:olLiveEvent.id,room_id:ol.roomId,score:eventScore}).then(r=>{
+   if(r.s===200&&r.claimed&&r.winner){
+    if(r.pix)showToast('🏆 Você venceu o Evento Pix! Prêmio de R$ '+(Number(r.prize_cents||0)/100).toLocaleString('pt-BR',{minimumFractionDigits:2})+'. Aguarde a transferência manual da Staff.',8);
+    else{eco.cheese=(Number(eco.cheese)||0)+Number(r.reward.amount||0);flushSave()}
+    olEventLastPoll=0
+   }
+  }).catch(()=>{})
+ }
 }
 async function olLoadGlobalEvents(){const box=document.getElementById('rativaGlobalEvents');if(!box)return;box.textContent='Carregando eventos de todas as salas...';try{const [active,audit]=await Promise.all([olEventApi('/api/rato-snack/events'),olEventApi('/api/rato-snack/events/audit')]);if(!active.ok||!audit.ok)throw new Error(active.error||audit.error||'falha');const regs=audit.pix_registrations||[],events=audit.events||[];const overview=document.getElementById('rativaEventOverview');if(overview){const current=(active.events||[]).find(e=>e.room_id===ol.roomId);if(!ol.inRoom||!ol.roomId){overview.textContent='⚪ ENTRE NA SALA AO VIVO PARA VER OU CRIAR UM EVENTO.';overview.style.borderColor='#8060a0'}else if(!current){overview.textContent='🟢 NENHUM EVENTO ATIVO OU PREPARADO NESTA SALA. Você pode criar um evento de queijos OU um Evento Pix.';overview.style.borderColor='#42a875'}else{const state=current.status==='pending'?'🟡 PREPARADO — CONTAGEM AINDA NÃO COMEÇOU':'🔴 EVENTO EM ANDAMENTO — CRONÔMETRO ATIVO';const reward=current.event_type==='pix'?'R$ '+(Number(current.prize_cents||0)/100).toLocaleString('pt-BR',{minimumFractionDigits:2}):Number(current.reward_amount||0).toLocaleString('pt-BR')+' queijos';overview.textContent=state+' | '+(current.event_type==='pix'?'EVENTO PIX':'EVENTO DE QUEIJOS')+' | Prêmio: '+reward+' | Meta: '+Number(current.goal_value||0).toLocaleString('pt-BR')+' pontos';overview.style.borderColor=current.status==='pending'?'#d6a743':'#d65b66'}}const shown=[...events.filter(e=>e.status==='pending'||e.status==='active'),...events.filter(e=>e.event_type==='pix'&&e.status==='won'&&e.payment_status!=='paid')],winners=events.filter(e=>e.status==='won');if(!shown.length&&!winners.length){box.textContent='Nenhum evento ativo, preparado ou vencedor registrado.';return}box.innerHTML=shown.map(e=>{const reg=regs.find(x=>x.event_id===e.id&&x.user_id===e.winner_user_id);const prize=e.event_type==='pix'?'R$ '+(Number(e.prize_cents||0)/100).toLocaleString('pt-BR',{minimumFractionDigits:2}):Number(e.reward_amount||0).toLocaleString('pt-BR')+' queijos';const winner=e.winner_nickname?' • Vencedor: '+olEsc(e.winner_nickname):'';const key=reg?' • ID: '+olEsc(reg.public_id)+' • Pix: '+olEsc(reg.pix_key_snapshot):'';const pay=e.event_type==='pix'&&e.status==='won'&&e.payment_status!=='paid'?' <button type="button" data-pix-paid="'+olEsc(e.id)+'">CONFIRMAR PIX PAGO</button>':'';return '<div style="padding:9px;margin:6px 0;border:1px solid #604876;border-radius:9px;background:#100b18"><b>'+(e.event_type==='pix'?'💸 EVENTO PIX':'🏁 EVENTO QUEIJOS')+'</b><br>Meta: '+Number(e.goal_value).toLocaleString('pt-BR')+' pontos • Prêmio: '+prize+'<br>Sala: '+olEsc(e.room_id)+winner+key+'<br>Status: '+(e.status==='pending'?'PREPARADO · cronômetro parado':olEsc(e.status))+(e.payment_status==='paid'?' • PIX PAGO por '+olEsc(e.paid_by_nickname||'Staff'):'')+pay+'</div>'}).join('')+(winners.length?'<div style="margin:14px 0 7px;padding-top:12px;border-top:1px solid #74568d"><b style="font-size:14px;color:#ffe08a">🏆 HALL DOS VENCEDORES</b></div>'+winners.map(e=>{const prize=e.event_type==='pix'?'R$ '+(Number(e.prize_cents||0)/100).toLocaleString('pt-BR',{minimumFractionDigits:2}):Number(e.reward_amount||0).toLocaleString('pt-BR')+' queijos';return '<div style="padding:10px;margin:6px 0;border:1px solid #8c7040;border-radius:10px;background:#21190f"><b>🏆 '+olEsc(e.winner_nickname||'Vencedor')+'</b><br>'+olEsc(prize)+' • '+Number(e.winner_score||0).toLocaleString('pt-BR')+' pontos<br><small>'+new Date(e.won_at||e.created_at).toLocaleString('pt-BR')+'</small><br><button type="button" data-announce-winner="'+olEsc(e.id)+'">📢 DIVULGAR GANHADOR NO SERVIDOR</button></div>'}).join(''):'');box.querySelectorAll('[data-announce-winner]').forEach(btn=>btn.addEventListener('click',async()=>{const ev=events.find(x=>x.id===btn.getAttribute('data-announce-winner'));if(!ev)return;const prize=ev.event_type==='pix'?'R$ '+(Number(ev.prize_cents||0)/100).toLocaleString('pt-BR',{minimumFractionDigits:2}):Number(ev.reward_amount||0).toLocaleString('pt-BR')+' queijos';const message='🏆 EVENTO RativaSnack: '+(ev.winner_nickname||'Um jogador')+' venceu o evento da Staff e ganhou '+prize+'! Parabéns!';btn.disabled=true;try{const sent=await olApi('/api/admin/announcements',{message},ol.token);if(sent.s!==200||!sent.ok)throw new Error(sent.error||'falha_ao_publicar');btn.textContent='✓ GANHADOR DIVULGADO'}catch(err){btn.disabled=false;alert('Não foi possível divulgar: '+err.message)}}));box.querySelectorAll('[data-pix-paid]').forEach(btn=>btn.addEventListener('click',async()=>{if(!confirm('Você já realizou a transferência Pix deste prêmio?'))return;btn.disabled=true;try{const r=await olEventApi('/api/rato-snack/events',{action:'confirm_paid',event_id:btn.getAttribute('data-pix-paid')});if(!r.ok)throw new Error(r.error||'falha');await olLoadGlobalEvents()}catch(e){btn.disabled=false;alert('Não foi possível confirmar: '+e.message)}}))}catch(e){box.textContent='Não foi possível carregar eventos: '+e.message}}
 const staffCss=document.createElement('style');staffCss.id='rativaStaffPanelSkin';staffCss.textContent=`#rativaStaffPanel{padding:12px!important;background:rgba(5,3,12,.84)!important}#rativaStaffPanel section{width:min(620px,100%)!important;max-height:94dvh!important;padding:0!important;overflow:auto!important;border:1px solid #8e68b6!important;border-radius:22px!important;background:linear-gradient(155deg,#241735,#100c1a 72%)!important;box-shadow:0 24px 80px #000c!important}#rativaStaffPanel section>div:first-child{position:sticky;top:0;z-index:2;padding:17px 18px;background:#21152ff2;border-bottom:1px solid #ffffff18}#rativaStaffPanel input,#rativaStaffPanel textarea{box-sizing:border-box!important;width:calc(100% - 32px)!important;border:1px solid #59436f!important;border-radius:12px!important;background:#0e0a17!important;color:#fff!important;padding:12px!important;font:14px system-ui!important}#rativaStaffPanel button{border:1px solid #8d69ad!important;border-radius:11px!important;padding:11px 14px!important;background:linear-gradient(180deg,#68458a,#38234f)!important;color:#fff!important;font-weight:900!important}#rativaStaffPanel button:disabled{opacity:.5!important}#rativaStaffPanel #rativaBossStart,#rativaStaffPanel #rativaEventStart,#rativaStaffPanel #rativaEventActivate{background:linear-gradient(180deg,#d4a94c,#8b5b1c)!important;color:#211507!important;border-color:#f1ce79!important}#rativaStaffPanel #rativaBossStop,#rativaStaffPanel #rativaEventCancel{background:linear-gradient(180deg,#6c394e,#3c1d30)!important}#rativaStaffPanel #rativaEventStatus,#rativaStaffPanel #rativaBossStatus{padding:11px!important;border-radius:11px!important;background:#100b19!important;border:1px solid #ffffff16!important;line-height:1.5!important}#rativaStaffPanel label{display:block!important;margin:12px 0 6px!important;font-size:12px!important;font-weight:800!important;color:#ddc9f1!important}@media(max-width:480px){#rativaStaffPanel section{max-height:96dvh!important;border-radius:17px!important}}`;document.head.append(staffCss);
@@ -1368,7 +1406,7 @@ function olMsg(m){
   case 'global_announcement':if(m.kind==='staff_online'||m.kind==='manual')olShowGlobalAnnouncement(m);break;
   case 'room_closed':olRejectRoom(m.message||wbMsg());break;
   case 'room_mode_mismatch':olRejectRoom('A conexão tentou entrar em uma sala de outro modo. Volte ao menu e tente novamente.');break;
-  case 'joined':ol.reconnectNeedsJoin=false;ol.roomId=String(m.roomId||('host:'+String(m.host||'')));if(!olRoomMatches(m)){olRejectRoom('O servidor respondeu com uma sala diferente da solicitada. A entrada foi bloqueada.');break}if(ol.mode==='mundial'&&!wbOpen()){olRejectRoom(wbMsg());break}ol.hostId=m.host;ol.isHost=m.isHost;ol.hostType=m.hostType||'bot-pro';ol.hostLabel=m.hostLabel||'Bot Pro';ol.mode=ol.mode||m.mode||mode;ol.players=m.players;if(ol.view)olRoomView();break;
+  case 'joined':ol.reconnectNeedsJoin=false;ol.reconnectNoticeShown=false;ol.tries=0;ol.roomId=String(m.roomId||('host:'+String(m.host||'')));if(!olRoomMatches(m)){olRejectRoom('O servidor respondeu com uma sala diferente da solicitada. A entrada foi bloqueada.');break}if(ol.mode==='mundial'&&!wbOpen()){olRejectRoom(wbMsg());break}ol.hostId=m.host;ol.isHost=m.isHost;ol.hostType=m.hostType||'bot-pro';ol.hostLabel=m.hostLabel||'Bot Pro';ol.mode=ol.mode||m.mode||mode;ol.players=m.players;if(ol.view)olRoomView();break;
   case 'roster':if(!olRoomMatches(m)){olRejectRoom('A sala online mudou de modo. Entrada cancelada.');break}ol.players=m.players;if(ol.isHost){const peers=(m.players||[]).filter(p=>String(p.id)!==String(ol.id));for(const p of peers){const q=olRelayPeer(p.id);q.nick=p.nick||'Jogador'}mpConns=mpConns.filter(q=>peers.some(p=>String(p.id)===String(q.uid)));mpSlots.length=0;for(let i=0;i<mpConns.length;i++){mpConns[i].slot=i+1;mpSlots[i]=mpConns[i];if(bots[i])mpBind(bots[i],mpConns[i])}}if(ol.view)olRoomView();break;
   case 'countdown':if(!olRoomMatches(m)){olRejectRoom('A contagem pertence a outra sala. Entrada cancelada.');break}if(ol.view)olRoomView('A partida começa em '+Math.round(m.ms/1000)+' s…');break;
   case 'start':if(!olRoomMatches(m)){olRejectRoom('O servidor tentou iniciar uma sala diferente. Entrada bloqueada.');break}if(ol.mode==='mundial'&&!wbOpen()){olRejectRoom(wbMsg());break}ol.view=false;mpClose();ol.authoritative=false;mpOnline=true;mpPending=false;mpRole='relay';olRemoteAvatars.clear();startGame(ol.mode||mode);if(ol.mode==='treino')olVoiceStart();break;
@@ -1539,7 +1577,7 @@ function updateHud(force){
  const set=(id,v)=>{const el=$(id);if(el._v!==v){el._v=v;el.textContent=v}};
  set('score',score);set('size',player?player.length:0);set('kills',kills);
  const M=MODES[mode];if(mpOnline&&ol.left>=0){set('timeLbl','Sala');set('timeval',fmtTime(Math.max(0,ol.left)))}else if(M.limit&&!mpOnline){set('timeLbl','Restante');set('timeval',fmtTime(Math.max(0,M.limit-gameTime)))}else{set('timeLbl','Tempo');set('timeval',fmtTime(gameTime))}
- set('best',mode==='quick'?bestQuick:mode==='survival'?fmtTime(stats.bestTime):stats.bestChallenge);goalTick();goalHud();
+ if(ol.inRoom&&ol.mode==='treino'&&olLiveEvent&&olLiveEvent.status==='active'){const eventEnd=Date.parse(olLiveEvent.ends_at||'');if(Number.isFinite(eventEnd)){const eventRemaining=Math.max(0,eventEnd-(Date.now()+olEventClockOffsetMs));set('timeLbl','Evento');set('timeval',fmtTime(Math.ceil(eventRemaining/1000)))}}set('best',mode==='quick'?bestQuick:mode==='survival'?fmtTime(stats.bestTime):stats.bestChallenge);goalTick();goalHud();
  let b='';if(player){if(player.boostT>0)b+='⚡ '+Math.ceil(player.boostT)+'s  ';if(player.growT>0)b+='🌱 ×2 '+Math.ceil(player.growT)+'s  ';if(player.magnetT>0)b+='🧲 '+Math.ceil(player.magnetT)+'s  ';if(player.shieldP>0)b+='🛡️ '+Math.ceil(player.shieldP)+'s  ';if(player.multT>0)b+='×2 pts '+Math.ceil(player.multT)+'s'}
  const be=$('bonus');if(b){be.textContent=b;be.classList.remove('hidden')}else be.classList.add('hidden');
  set('mini','Ameaça: '+(threat<.25?'baixa':threat<.55?'média':'alta')+' • '+(modeHud()||'Coma queijos • Evite ratos e paredes'));syncBoostBtn()}
