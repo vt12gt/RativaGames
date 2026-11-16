@@ -107,7 +107,7 @@ table.rec{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0}.rec t
 .hero{position:relative;overflow:hidden;border:0;border-radius:2vh;padding:2.4vh 2.2vw;text-align:left;display:flex;flex-direction:column;justify-content:center;gap:1.2vh;background:radial-gradient(120% 90% at 85% 100%,#ffcf5a 0%,rgba(255,207,90,0) 60%),linear-gradient(180deg,#f7a321 0%,#e8721a 55%,#c4501a 100%);box-shadow:0 .9vh 0 #8e3a10,0 1.6vh 1.8vh #5a210a55,inset 0 .5vh 0 #ffffff55;text-shadow:0 .3vh 0 #7a300f}
 .hero-t{font-size:7.4vh;line-height:1.02;max-width:80%;-webkit-text-stroke:.2vh #7a300f;paint-order:stroke fill}
 .hero-d{font-size:3.4vh;line-height:1.2;max-width:62%;font-weight:800;color:#fff3d6}
-.hero-tag{position:relative;left:auto;bottom:auto;align-self:flex-start;margin-top:.6vh;padding:1.1vh 2vw;border-radius:1.4vh;background:linear-gradient(#58d83a,#2fa51d);box-shadow:0 .6vh 0 #1b6a10,inset 0 .3vh 0 #ffffff66;font-size:3.4vh;text-shadow:0 .25vh 0 #17620e;z-index:3}
+.hero-tag{position:absolute;left:2.2vw;bottom:2vh;align-self:auto;margin:0;padding:1.1vh 2vw;border-radius:1.4vh;background:linear-gradient(#58d83a,#2fa51d);box-shadow:0 .6vh 0 #1b6a10,inset 0 .3vh 0 #ffffff66;font-size:3.4vh;text-shadow:0 .25vh 0 #17620e;z-index:3}
 .hero-mouse{position:absolute;right:3vw;bottom:2vh;font-size:22vh;line-height:1;font-style:normal;text-shadow:none;filter:drop-shadow(0 1vh .6vh #5a210a88);transform:rotate(-8deg)}
 .hero-cheese{position:absolute;right:21vw;bottom:2.4vh;font-size:9vh;font-style:normal;text-shadow:none;filter:drop-shadow(0 .6vh .4vh #5a210a88);transform:rotate(12deg)}
 .side{display:flex;flex-direction:column;gap:1.5vh;min-height:0}
@@ -123,7 +123,7 @@ table.rec{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0}.rec t
 .jogar{width:36%;height:100%;display:flex;align-items:center;justify-content:center;gap:1.4vw;border:0;border-radius:2.4vh;font-size:11vh;line-height:1;background:linear-gradient(#ffd93f,#f7a800);box-shadow:0 1vh 0 #b0670a,0 1.8vh 2vh #6a3a0a55,inset 0 .5vh 0 #fff9;text-shadow:0 .5vh 0 #b0670a;-webkit-text-stroke:.25vh #b0670a;paint-order:stroke fill}
 .jogar svg{height:.8em;width:.8em;filter:drop-shadow(0 .4vh 0 #b0670a)}
 .jogar:active{box-shadow:0 .3vh 0 #b0670a,inset 0 .5vh 0 #fff9}
-@media(max-height:360px){.hero-d{display:none}.hero-t{font-size:8vh}}
+@media(max-height:360px){.hero-d{display:block!important;visibility:visible!important;opacity:1!important;max-width:62%;padding-bottom:7vh;font-size:clamp(13px,2.8vh,22px);line-height:1.2;white-space:normal}.hero-t{font-size:8vh}}
 @media(prefers-reduced-motion:no-preference){.hero-mouse{animation:mb 2.6s ease-in-out infinite}.jogar{animation:jp 2.2s ease-in-out infinite}}
 @keyframes mb{0%,100%{transform:rotate(-8deg) translateY(0)}50%{transform:rotate(-4deg) translateY(-1.2vh)}}
 @keyframes jp{0%,100%{filter:none}50%{filter:brightness(1.1)}}
@@ -303,7 +303,7 @@ body.bigtxt #sheet,body.bigtxt #toast,body.bigtxt .hud .top{zoom:1.15}
 @media(max-width:600px){.cells{grid-template-columns:repeat(4,1fr)}}
 button.who{border:0;color:#fff;font-family:inherit;font-style:italic;font-weight:900;cursor:pointer;text-align:left}.wn{display:flex;flex-direction:column;align-items:flex-start;min-width:0}.wn small{font-size:2.1vh;color:#ffd84a;letter-spacing:.04em}.wn b{font-size:4.2vh;line-height:1.05;max-width:20vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .evtchip{height:100%;padding:0 1.8vw;display:flex;align-items:center;gap:.8vw;position:relative;font-size:3.2vh;max-width:24vw}.evtchip span{font-size:5vh}.evtchip b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hero-d{display:none!important}
+.hero-d{display:block!important;visibility:visible!important;opacity:1!important;max-width:62%;padding-bottom:7vh;font-size:clamp(13px,2.8vh,22px);line-height:1.2;white-space:normal}
 #nickHud{font-size:clamp(14px,2.6vw,22px)}
 #nick{z-index:25}#nick input,.dlg input{width:100%;padding:12px;border-radius:12px;border:2px solid #ffd84a;background:#fff;color:#2a1760;font-size:20px;font-weight:800;text-align:center;font-family:inherit;user-select:text;-webkit-user-select:text;touch-action:auto;outline:none}#nick input.bad{border-color:#ff5d73}
 .tutl{text-align:left;font-size:14px;line-height:1.4;color:#f1eaff}.tutl p{margin:0 0 7px}
@@ -331,7 +331,7 @@ button.who{border:0;color:#fff;font-family:inherit;font-style:italic;font-weight
 @media(max-width:600px){.cells{grid-template-columns:repeat(4,1fr)}}
 button.who{border:0;color:#fff;font-family:inherit;font-style:italic;font-weight:900;cursor:pointer;text-align:left}.wn{display:flex;flex-direction:column;align-items:flex-start;min-width:0}.wn small{font-size:2.1vh;color:#ffd84a;letter-spacing:.04em}.wn b{font-size:4.2vh;line-height:1.05;max-width:20vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .evtchip{height:100%;padding:0 1.8vw;display:flex;align-items:center;gap:.8vw;position:relative;font-size:3.2vh;max-width:24vw}.evtchip span{font-size:5vh}.evtchip b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hero-d{display:none!important}
+.hero-d{display:block!important;visibility:visible!important;opacity:1!important;max-width:62%;padding-bottom:7vh;font-size:clamp(13px,2.8vh,22px);line-height:1.2;white-space:normal}
 #nickHud{font-size:clamp(14px,2.6vw,22px)}
 #nick{z-index:25}#nick input,.dlg input{width:100%;padding:12px;border-radius:12px;border:2px solid #ffd84a;background:#fff;color:#2a1760;font-size:20px;font-weight:800;text-align:center;font-family:inherit;user-select:text;-webkit-user-select:text;touch-action:auto;outline:none}#nick input.bad{border-color:#ff5d73}
 .tutl{text-align:left;font-size:14px;line-height:1.4;color:#f1eaff}.tutl p{margin:0 0 7px}
@@ -526,8 +526,8 @@ body.rativa-online #quit{display:none!important}
   <button class="b3d purple" data-sheet="ach"><span>🏅</span>Conquistas<i id="dotA" class="dot hidden"></i></button>
  </div>
  <button class="hero" data-sheet="games">
-  <span class="hero-t" id="modeName"></span>
-  <span class="hero-d" id="modeDesc"></span>
+  <span class="hero-t" id="modeName">⚡ Partida rápida</span>
+  <span class="hero-d" id="modeDesc">Entre na arena, colete queijos, cresça e supere seu recorde!</span>
   <span class="hero-tag">TROCAR MODO</span>
   <span class="hero-mouse">🐭</span><span class="hero-cheese">🧀</span>
  </button>
