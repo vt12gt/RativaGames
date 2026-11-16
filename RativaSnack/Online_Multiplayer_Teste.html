@@ -1239,6 +1239,7 @@ function olClosed(code){
   }catch(_){olClosed(1006)}
  },delay)
 }
+window.addEventListener('online',()=>{if(ol.token&&ol.inRoom&&(!ol.ws||ol.ws.readyState!==1))olClosed(1006)});
 function olSlotBind(c){const i=Math.max(0,c.slot-1);mpSlots[i]=c;if(bots[i]){if(!bots[i].alive)respawnBot(i);mpBind(bots[i],c)}}
 function olHostStart(){ol.survivalAliveTime=0;ol.survivalRewarded=false;mpSlots.length=0;for(const c of mpConns)if(c.open)mpSlots[Math.max(0,c.slot-1)]=c;mpRole='host';mpPending=true;mpOnline=true;ol.tally={};ol.rw={};ol.tw=[0,0];ol.survivalEntrants=ol.mode==='survival'?1+mpSlots.filter(Boolean).length:0;ol.roomStart=Date.now();ol.left=-1;mpClose();startGame(ol.mode||mode)}
 function olShowStaffPanelButton(roles){ol.staffRoles=Array.isArray(roles)?roles:[];const btn=document.getElementById('rativaStaffPanelBtn');const allowed=ol.staffRoles.some(role=>['founder','spadmin','gm'].includes(role));if(btn){btn.classList.toggle('hidden',!allowed);if(!btn.dataset.bound){btn.dataset.bound='1';btn.addEventListener('click',olOpenStaffPanel)}}olSyncStaffHudButton()}
