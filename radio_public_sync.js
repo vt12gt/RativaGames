@@ -2,6 +2,7 @@
 'use strict';
 (function(){
  const API='https://ratopolis-radio-stream.juniorgmj69.workers.dev';
+ try{radioTracks=[];radioLibraryLoaded=true;window.setRadioTrack=function(){}}catch(e){}
  const audio=document.getElementById('radioAudio');
  const play=document.getElementById('radioPlay');
  const label=document.getElementById('radioTrack');
