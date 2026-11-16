@@ -13,7 +13,7 @@ const ALLOWED_ORIGINS = new Set([
   'http://localhost:8158',
   'http://localhost:8787'
 ]);
-const MAX_PLAYERS = 10;
+const MAX_PLAYERS = 5;
 const COUNTDOWN_MS = 5000;
 const RECONNECT_GRACE_MS = 30000;
 
@@ -387,6 +387,26 @@ wss.on('connection', (ws, req, user) => {
     if (m.t === 'st') {
       const target = room.players.get(String(m.to || ''));
       if (target && target.ws) send(target.ws, { t: 'st', d: String(m.d || '').slice(0, 60000) });
+      return;
+    }
+    if (m.t === 'avatar') {
+      const now = Date.now();
+      if (now - (ws._lastAvatarAt || 0) < 65) return;
+      ws._lastAvatarAt = now;
+      if (!m.a || typeof m.a !== 'object') return;
+      const a = m.a;
+      if (![a.x, a.y, a.d].every(v => Number.isFinite(Number(v)))) return;
+      broadcast(room, { t: 'avatar', id: user.id, a }, user.id);
+      return;
+    }
+    if (m.t === 'player_death') {
+      const now = Date.now();
+      if (now - (ws._lastDeathAt || 0) < 250) return;
+      ws._lastDeathAt = now;
+      const victimId = String(m.victimId || '');
+      const killerId = String(m.killerId || '');
+      if (victimId !== user.id || (killerId && (!room.players.has(killerId) || killerId === victimId))) return;
+      broadcast(room, { t: 'player_death', victimId, killerId }, user.id);
       return;
     }
   });
