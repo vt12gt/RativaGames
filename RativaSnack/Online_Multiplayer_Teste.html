@@ -1334,7 +1334,7 @@ function olEventTick(now){
  if(!olLiveEvent||olLiveEvent.status!=='active')return;
  const endsAt=Date.parse(olLiveEvent.ends_at||'');
  const remaining=Number.isFinite(endsAt)?Math.max(0,endsAt-(Date.now()+olEventClockOffsetMs)):0;
- if(remaining>0&&running&&!ended&&now-olEventLastProgress>1200){
+ if(remaining>0&&(running||ended)&&now-olEventLastProgress>1200){
   olEventLastProgress=now;
   const eventScore=Math.max(0,Math.floor(Number(score)||0)-olEventScoreBase);
   olEventApi('/api/rato-snack/events/progress',{event_id:olLiveEvent.id,room_id:ol.roomId,score:eventScore}).then(r=>{
