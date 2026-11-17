@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#17102b"><title>RativaSnack • Estúdio de Skins</title>
+<style>
+:root{color-scheme:dark;--bg:#100b1d;--panel:#1d1530;--line:#392b55;--gold:#f6c85f;--muted:#b9aecb}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,#49306f 0,#100b1d 55%);color:#fff;font:15px system-ui,sans-serif}
+header{padding:24px 16px 18px;text-align:center}header h1{margin:0;font-size:clamp(25px,5vw,38px)}header p{color:var(--muted);margin:8px auto;max-width:620px}
+main{max-width:1050px;margin:auto;padding:0 14px 36px}.section{background:#1b142a;border:1px solid var(--line);border-radius:18px;padding:16px;margin:14px 0;box-shadow:0 12px 35px #0004}
+h2{font-size:18px;margin:0 0 12px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px}
+.card{background:#120d20;border:1px solid #3a2d52;border-radius:14px;padding:12px;text-align:center;min-width:0}
+.preview{height:112px;display:grid;place-items:center;background:radial-gradient(circle,#322449,#171020);border-radius:10px;margin-bottom:9px}
+canvas{width:100%;height:100%;max-width:150px;image-rendering:auto}.name{font-weight:700}.sub{font-size:12px;color:var(--muted);margin-top:3px}
+button{background:#6d48a7;color:white;border:0;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer;margin-top:9px}button.active{background:#b17a25;color:#1b1023}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row label{color:var(--muted);font-size:13px}select{background:#100b1d;color:#fff;border:1px solid var(--line);padding:9px;border-radius:9px}
+.note{color:var(--muted);font-size:13px;line-height:1.5}.pill{display:inline-block;color:#1b1023;background:var(--gold);padding:4px 9px;border-radius:20px;font-size:11px;font-weight:800}
+footer{text-align:center;color:var(--muted);padding:10px 0 25px;font-size:12px}
+</style></head>
+<body>
+<header><div class="pill">CATÁLOGO VISUAL • V2.0.0</div><h1>🐍 RativaSnack — Estúdio de Skins</h1><p>Área de visualização das aparências do jogo. Escolha cabeça, corpo e cauda para conferir as combinações.</p></header>
+<main>
+<section class="section"><h2>Prévia combinada</h2><div class="preview" style="height:180px"><canvas id="combo" width="520" height="180"></canvas></div><div class="row">
+<label>Corpo <select id="body"><option value="0">Clássico</option><option value="1">Neon</option><option value="2">Galáxia</option><option value="3">Ouro</option></select></label>
+<label>Cabeça <select id="head"><option value="0">Clássica</option><option value="1">Neon</option><option value="2">Galáxia</option><option value="3">Ouro</option></select></label>
+<label>Cauda <select id="tail"><option value="0">Pompom</option><option value="1">Flor</option><option value="2">Estrela</option><option value="3">Coração</option><option value="4">Chama</option><option value="5">Cristal</option></select></label>
+<button id="random">Combinação aleatória</button></div><p class="note">Esta página é um mostruário visual: as opções aqui não alteram sua conta, inventário ou compras no jogo.</p></section>
+<section class="section"><h2>Corpos disponíveis</h2><div class="grid" id="bodies"></div></section>
+<section class="section"><h2>Cabeças disponíveis</h2><div class="grid" id="heads"></div></section>
+<section class="section"><h2>Caudas e acessórios</h2><div class="grid" id="tails"></div></section>
+</main><footer>RativaGames • RativaSnack • Estúdio de Skins</footer>
+<script>
+const base='assets/snakes/';const files={body:'snake-atlas.svg',head:'head-atlas.svg',tail:'tail-atlas.svg'};
+const imgs={};for(const [k,f] of Object.entries(files)){imgs[k]=new Image();imgs[k].src=base+f;}
+const bodyNames=['Clássico','Neon','Galáxia','Ouro'],tailNames=['Pompom','Flor','Estrela','Coração','Chama','Cristal'];
+function drawStrip(ctx,img,index,fw,fh,x,y,w,h){if(img.complete&&img.naturalWidth)ctx.drawImage(img,index*fw,0,fw,fh,x,y,w,h)}
+function render(){const c=document.getElementById('combo'),x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);
+const b=+document.getElementById('body').value,h=+document.getElementById('head').value,t=+document.getElementById('tail').value;
+for(let i=0;i<5;i++){drawStrip(x,imgs.body,b,64,64,105+i*56,64,65,65)}
+drawStrip(x,imgs.tail,t,64,64,62,64,65,65);drawStrip(x,imgs.head,h,96,96,350,47,105,105);
+}
+function makeCard(container,title,desc,img,key,index,fw,fh){const card=document.createElement('div');card.className='card';const preview=document.createElement('div');preview.className='preview';const c=document.createElement('canvas');c.width=150;c.height=112;preview.append(c);const ctx=c.getContext('2d');const paint=()=>{ctx.clearRect(0,0,150,112);drawStrip(ctx,img,index,fw,fh,25,5,100,100)};img.addEventListener('load',paint);paint();const n=document.createElement('div');n.className='name';n.textContent=title;const s=document.createElement('div');s.className='sub';s.textContent=desc;const btn=document.createElement('button');btn.textContent='Experimentar';btn.onclick=()=>{document.getElementById(key).value=String(index);render();document.querySelectorAll('button').forEach(b=>b.classList.remove('active'));btn.classList.add('active')};card.append(preview,n,s,btn);document.getElementById(container).append(card)}
+bodyNames.forEach((n,i)=>makeCard('bodies',n,'Visual de corpo',imgs.body,'body',i,64,64));
+bodyNames.forEach((n,i)=>makeCard('heads',n,'Cabeça personalizada',imgs.head,'head',i,96,96));
+tailNames.forEach((n,i)=>makeCard('tails',n,'Acessório de cauda',imgs.tail,'tail',i,64,64));
+document.querySelectorAll('select').forEach(s=>s.addEventListener('change',render));
+document.getElementById('random').onclick=()=>{['body','head','tail'].forEach(id=>document.getElementById(id).value=String(Math.floor(Math.random()*(id==='tail'?6:4))));render()};
+Promise.all(Object.values(imgs).map(i=>new Promise(resolve=>{if(i.complete)resolve();else{i.onload=resolve;i.onerror=resolve}}))).then(render);
+</script></body></html>
