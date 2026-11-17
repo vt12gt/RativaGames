@@ -500,7 +500,7 @@ button.who{border:0;color:#fff;font-family:inherit;font-style:italic;font-weight
 #rativaStaffHudBtn,#rativaVoiceToggle{display:flex;align-items:center;justify-content:center;touch-action:manipulation;cursor:pointer;flex-shrink:0}
 #rativaStaffHudBtn{order:2}#rativaVoiceToggle{order:3}
 #pause.online-exit.hidden{display:none!important}
-body.rativa-online #quit{display:none!important}
+/* O botão de saída fica visível somente dentro do menu pausado; nunca flutua no HUD. */
 @media(max-width:560px){.hud .stats{gap:3px}.hud .stats #rativaStaffHudBtn,.hud .stats #rativaVoiceToggle{width:29px!important;height:29px!important;flex-basis:29px!important;font-size:14px!important;margin:0!important}.hud .stats .pill{padding:3px 4px}.hud .stats .pill small{font-size:7px}}
 @media(orientation:landscape) and (max-height:420px){#rativaLiveEventHud{top:calc(env(safe-area-inset-top) + 76px)!important}}
 </style></head>
