@@ -736,10 +736,10 @@ const SYNC={enabled:false,endpoint:null,queue:[],push(){return false},flush(){re
 
 function skillVal(s,k,f){const L=(!s||!s.isBot)?eco.lv[k]:1,a=SKILL_LIST[k][f];return a[Math.max(0,Math.min(a.length-1,L-1))]}
 const skillCost=L=>{let cost=SKILL_CFG.cost.base;for(let i=0;i<L;i++)cost=Math.round(cost*SKILL_CFG.cost.growth);return cost};
-function applySkillsToCfg(){CFG.boostMax=skillVal(null,'dash','dur');CFG.boostRecharge=skillVal(null,'dash','rech')/(evtOf().id==='veloz'?2:1)}
+function applySkillsToCfg(){if(mpOnline&&ol.inRoom&&ol.mode==='treino'){CFG.boostMax=1.6;CFG.boostRecharge=5;return}CFG.boostMax=skillVal(null,'dash','dur');CFG.boostRecharge=skillVal(null,'dash','rech')/(evtOf().id==='veloz'?2:1)}
 function buzz(ms){if(prefs.vib&&navigator.vibrate)try{navigator.vibrate(ms)}catch(e){}}
 function itemChargesLeft(){return Object.values(eco.inv).reduce((a,v)=>a+(Number(v)||0),0)}
-function applyStartItems(){const used=[];for(const k in START_ITEMS)if(eco.inv[k]>0){eco.inv[k]--;START_ITEMS[k].fn(player);used.push(START_ITEMS[k].i)}if(used.length){if(itemChargesLeft()===0)eco.itemPriceStep=0;saveEco();showToast('Itens usados: '+used.join(' '),3)}}
+function applyStartItems(){if(mpOnline&&ol.inRoom&&ol.mode==='treino')return;const used=[];for(const k in START_ITEMS)if(eco.inv[k]>0){eco.inv[k]--;START_ITEMS[k].fn(player);used.push(START_ITEMS[k].i)}if(used.length){if(itemChargesLeft()===0)eco.itemPriceStep=0;saveEco();showToast('Itens usados: '+used.join(' '),3)}}
 function toastFor(t,s){if(t===7)return '👑 Rei Queijo: +100 🧀 e crescimento ×2!';if(t===8)return '🦏 Tanque: +75 🧀 e ímã 4× mais forte!';if(t===9)return '🧲 ÍMÃ SUPREMO DO BOSS! Puxe os queijos da arena por 35 segundos!';const m={2:['⚡ Velocidade','boost'],3:['🌱 Crescimento dobrado','grow'],4:['🧲 Ímã de comida','magnet'],5:['🛡️ Escudo','shield'],6:['×2 Pontos em dobro','mult']}[t];return m[0]+' por '+(+skillVal(s,m[1],'dur').toFixed(1))+' s!'}
 function skTxt(k,L){const c=SKILL_LIST[k],v=f=>c[f][Math.max(0,Math.min(c[f].length-1,L-1))];let t=v('dur').toFixed(2).replace(/0+$/,'').replace(/\.$/,'')+' s';if(c.mul)t+=' • +'+Math.round((v('mul')-1)*100)+'% vel.';if(c.rad)t+=' • raio '+Math.round(v('rad'));if(c.rech)t+=' • recarga '+v('rech').toFixed(2).replace(/0+$/,'').replace(/\.$/,'')+' s';return t}
 let pendingBuy='',shopMsg='',buyLock=0,leader=null,goalIdx=0,revived=0,reviveTimer=null,shopCat='skin',shopSel=null;
@@ -1027,7 +1027,7 @@ function move(s,dt){
  if(s.hitWall){s.hitWall=false;if(s.boss)bossCrash(s);else die(s,'wall',null)}}
 function burst(x,y,c,n){n=Math.min(Math.round(n*QUAL[prefs.quality].part),CFG.particleCap-particles.length);for(let i=0;i<n;i++){const a=rand(0,6.28),v=rand(25,120);particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rand(.25,.7),max:.7,color:c,r:rand(2,4)})}}
 function addScore(n){if(player&&player.multT>0)n*=2;score+=n;if(mode==='quick'&&score>bestQuick){bestQuick=score;bestDirty=true}}
-function applyFood(s,f){const dbl=s.growT>0?2:1;let pts=10;
+function applyFood(s,f){const liveRoom=mpOnline&&ol.inRoom&&ol.mode==='treino';if(liveRoom&&f.type>=2&&f.type!==9)return;if(liveRoom&&f.type===9&&!f.bossMagnet)return;const dbl=s.growT>0?2:1;let pts=10;
  if(f.type===0)s.pending+=dbl;
  else if(f.type===1){s.pending+=3*dbl;pts=50}
  else if(f.type===2){s.boostT=skillVal(s,'boost','dur');pts=15}
@@ -1399,8 +1399,8 @@ function olRelayAvatarTick(dt){
  // Descarta snapshots quando a rede já está congestionada; não acumula posições antigas.
  if(ol.ws.bufferedAmount>98304)return;
  const seg=Array.isArray(player.segments)?player.segments:[],g=[];
- // 36 amostras distribuídas pelo corpo reduzem bastante o tamanho dos pacotes.
- const maxPoints=36,step=Math.max(1,Math.ceil(seg.length/maxPoints));
+ // Mais pontos preservam a geometria de cobras grandes sem transmitir cada segmento.
+ const maxPoints=180,step=Math.max(1,Math.ceil(seg.length/maxPoints));
  for(let i=0;i<seg.length&&g.length<maxPoints*2;i+=step)g.push(Math.round(seg[i].x),Math.round(seg[i].y));
  if(seg.length&&g.length<maxPoints*2&&((seg.length-1)%step!==0)){const q=seg[seg.length-1];g.push(Math.round(q.x),Math.round(q.y))}
  olSend({t:'avatar',a:{x:Math.round(player.x),y:Math.round(player.y),d:+(player.angle||0).toFixed(3),l:Math.max(1,Math.floor(player.length||seg.length)),al:player.alive?1:0,r:player.radius,c:player.color,n:ol.nick||prefs.nick||'Jogador',sc:Math.max(0,Number(score)||0),ki:Math.max(0,Number(kills)||0),mt:Math.max(0,Number(player.magnetT)||0),mp:Math.max(1,Number(player.magnetPow)||1),sk:player.skin||prefs.skin||'liso',ac:player.acc||'nenhum',ta:player.tail||'normal',rt:player.rat||prefs.rat||'nenhum',ht:player.hat||'nenhum',cl:player.cloth||'nenhum',g}});
@@ -1410,13 +1410,13 @@ function olApplyRemoteAvatar(m){
  const a=m.a,old=olRemoteAvatars.get(id)||{};
  const x=Number(a.x),y=Number(a.y),d=Number(a.d);
  if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(d))return;
- const g=Array.isArray(a.g)?a.g.slice(0,240).map(Number):[];
+ const g=Array.isArray(a.g)?a.g.slice(0,360).map(Number):[];
  const segments=[];for(let i=0;i+1<g.length;i+=2)if(Number.isFinite(g[i])&&Number.isFinite(g[i+1]))segments.push({x:g[i],y:g[i+1]});
  if(!segments.length)segments.push({x,y});
  Object.assign(old,{x,y,tx:x,ty:y,angle:d,ta:d,px:old.x===undefined?x:old.x,py:old.y===undefined?y:old.y,score:Math.max(0,Number(a.sc)||0),kills:Math.max(0,Number(a.ki)||0),length:Math.max(1,Math.min(10000,Number(a.l)||segments.length)),alive:!!a.al,radius:Math.max(4,Math.min(40,Number(a.r)||10)),color:mpC(a.c),name:String(a.n||'Jogador').slice(0,24),skin:mpS(a.sk,'liso'),acc:mpS(a.ac,'nenhum'),tail:mpS(a.ta,'normal'),rat:mpS(a.rt,'nenhum'),hat:mpS(a.ht,'nenhum'),cloth:mpS(a.cl,'nenhum'),segments:old.segments&&old.segments.length?old.segments:segments.map(q=>({x:q.x,y:q.y})),targetSegments:segments,remoteRender:true,isBot:false,remote:{uid:id},shield:0,special:0,boostT:0,boostActive:false});
  old.tx=x;old.ty=y;old.ta=d;old.snapshots=old.snapshots||[];old.snapshots.push({at:performance.now(),x,y,d,segments:segments.map(q=>({x:q.x,y:q.y}))});if(old.snapshots.length>5)old.snapshots.shift();olRemoteAvatars.set(id,old);
 }
-function olRemoteCollisionTick(){if(!mpOnline||mpRole!=='relay'||!player||!player.alive||(mode==='treino'&&olLiveEvent?.status!=='active'))return;const px=player.x,py=player.y,pr=player.radius||10;for(const [id,r] of olRemoteAvatars){if(!r||!r.alive||String(id)===String(ol.id))continue;const seg=r.targetSegments&&r.targetSegments.length?r.targetSegments:(r.segments||[]);for(let i=3;i<seg.length;i++){const q=seg[i],dx=px-q.x,dy=py-q.y,lim=pr+(r.radius||10)*.72;if(dx*dx+dy*dy<lim*lim){die(player,'online_player',r);return}}const dx=px-r.x,dy=py-r.y,lim=pr+(r.radius||10);if(dx*dx+dy*dy<lim*lim&&player.length<r.length){die(player,'online_player',r);return}}}
+function olRemoteCollisionTick(){if(!mpOnline||mpRole!=='relay'||!player||!player.alive||(mode==='treino'&&olLiveEvent?.status!=='active'))return;const px=player.x,py=player.y,pr=player.radius||10;for(const [id,r] of olRemoteAvatars){if(!r||!r.alive||String(id)===String(ol.id))continue;const seg=r.targetSegments&&r.targetSegments.length?r.targetSegments:(r.segments||[]),lim=pr+(r.radius||10)*.72,l2=lim*lim;for(let i=3;i<seg.length;i++){const p=seg[i-1],q=seg[i];if(!p||!q)continue;if(sd(px,py,p.x,p.y,q.x,q.y)<l2){die(player,'online_player',r);return}}const dx=px-r.x,dy=py-r.y,headLim=pr+(r.radius||10);if(dx*dx+dy*dy<headLim*headLim&&player.length<r.length){die(player,'online_player',r);return}}}
 function olApplySharedDropMessage(m){
  if(!m)return;
  if(m.t==='drops_spawned'){
@@ -1424,7 +1424,7 @@ function olApplySharedDropMessage(m){
   for(const item of items){
    if(!item||!item.id||foods.some(f=>f.sharedId===item.id))continue;
    const f=spawnFood(Number(item.x)||0,Number(item.y)||0,Number(item.type)||0,true,String(item.color||'#ffd23e'),Number(item.r)||6);
-   if(f){f.sharedId=String(item.id);f.sharedDrop=true}
+   if(f){f.sharedId=String(item.id);f.sharedDrop=true;f.bossMagnet=Number(item.type)===9}
   }
   return;
  }
@@ -1695,7 +1695,7 @@ function applyRevenge(){if(!pendingRevenge)return;const r=pendingRevenge;pending
  if(b){b.rival=true;showToast('🎯 Revanche: '+b.name+' está marcado!',3)}}
 
 function startGame0(m){
- mpAway=false;secretsFoundRound=0;onlineCollectedCheese=0;onlineCommonAcc=0;
+ applySkillsToCfg();mpAway=false;secretsFoundRound=0;onlineCollectedCheese=0;onlineCommonAcc=0;
  if(running&&!ended&&player){stats.food+=foodEaten;stats.kills+=kills;stats.time+=gameTime;countRound();saveStats()}
  if(m)mode=m;prefs.mode=mode;savePrefs();init();applyRevenge();initMode();applyStartItems();
  ['menu','over','paused','sheet'].forEach(id=>$(id).classList.add('hidden'));($('pause').classList.remove('hidden'),$('emoteB').classList.remove('hidden'));$('pause').textContent='Ⅱ';
