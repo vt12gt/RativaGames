@@ -1,9 +1,12 @@
 User-agent: *
 Allow: /
-Disallow: /radio_admin.html
-Disallow: /radio_stats.html
-Disallow: /ratopolis_admin_
+
+# Areas administrativas, arquivos internos e conteúdo não destinado à busca
+Disallow: /Admin/
+Disallow: /admin/
 Disallow: /workers/
 Disallow: /backups/
+Disallow: /*admin*
+Disallow: /*Admin*
 
-Sitemap: https://vt12gt.github.io/ratopolis/sitemap.xml
+Sitemap: https://vt12gt.github.io/RativaGames/sitemap.xml
