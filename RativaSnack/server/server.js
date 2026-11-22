@@ -3,6 +3,7 @@
 const http = require('node:http');
 const { URL } = require('node:url');
 const { WebSocketServer, WebSocket } = require('ws');
+const { firstAvailableRoom: selectAvailableRoom } = require('./room-allocator');
 
 const PORT = Number(process.env.PORT || 8787);
 const RATOPOLIS_API_URL = String(process.env.RATOPOLIS_API_URL || 'https://ratopolis-api-dev-v30.juniorgmj69.workers.dev').replace(/\/+$/, '');
@@ -174,10 +175,7 @@ function createRoom(mode) {
   return room;
 }
 function firstAvailableRoom(mode) {
-  for (const room of rooms.values()) {
-    if (room.mode === mode && room.players.size < MAX_PLAYERS) return room;
-  }
-  return createRoom(mode);
+  return selectAvailableRoom(rooms, mode, MAX_PLAYERS, createRoom);
 }
 function startCountdown(room) {
   if (room.started || room.countdown || room.players.size < 2) return;
